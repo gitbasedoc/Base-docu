@@ -1,0 +1,148 @@
+"""
+Application Factory pour KB Support Basedoc
+"""
+
+import os
+import logging
+from logging.handlers import RotatingFileHandler
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
+from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
+from flask_caching import Cache
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Extensions
+db = SQLAlchemy()
+login_manager = LoginManager()
+migrate = Migrate()
+csrf = CSRFProtect()
+cache = Cache()
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+
+def create_app(config_name=None):
+    """
+    Factory pour créer l'application Flask
+
+    Args:
+        config_name: Nom de la configuration ('development', 'production', 'testing')
+
+    Returns:
+        Instance Flask configurée
+    """
+    app = Flask(__name__)
+
+    # Configuration
+    if config_name is None:
+        config_name = os.environ.get('FLASK_ENV', 'production')
+
+    app.config.from_object('config.Config')
+
+    # Initialiser les extensions
+    db.init_app(app)
+    login_manager.init_app(app)
+    migrate.init_app(app, db)
+    csrf.init_app(app)
+    cache.init_app(app)
+    limiter.init_app(app)
+
+    # Configuration Flask-Login
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
+    login_manager.login_message_category = 'info'
+
+    # Configuration logging
+    configure_logging(app)
+
+    # Importer et enregistrer les blueprints
+    with app.app_context():
+        from app.routes.auth import auth_bp
+        from app.routes.procedures import procedures_bp
+        from app.routes.search import search_bp
+        from app.routes.api_ai import api_ai_bp
+
+        app.register_blueprint(auth_bp)
+        app.register_blueprint(procedures_bp)
+        app.register_blueprint(search_bp)
+        app.register_blueprint(api_ai_bp)
+
+        # Context processors
+        @app.context_processor
+        def inject_app_info():
+            return {
+                'app_name': app.config.get('APP_NAME', 'KB Support Basedoc'),
+                'company_name': app.config.get('COMPANY_NAME', 'Support IT'),
+                'version': app.config.get('VERSION', '1.0.0')
+            }
+
+        # Error handlers
+        register_error_handlers(app)
+
+    return app
+
+
+def configure_logging(app):
+    """
+    Configure le système de logging
+
+    Args:
+        app: Instance Flask
+    """
+    if not app.debug and not app.testing:
+        # Créer le répertoire des logs si nécessaire
+        log_dir = os.path.dirname(app.config.get('LOG_FILE', '/var/log/kb_basedoc/app.log'))
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
+
+        # Handler fichier avec rotation
+        file_handler = RotatingFileHandler(
+            app.config.get('LOG_FILE', '/var/log/kb_basedoc/app.log'),
+            maxBytes=app.config.get('LOG_MAX_BYTES', 10 * 1024 * 1024),
+            backupCount=app.config.get('LOG_BACKUP_COUNT', 10)
+        )
+
+        file_handler.setFormatter(logging.Formatter(
+            '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+        ))
+
+        file_handler.setLevel(getattr(logging, app.config.get('LOG_LEVEL', 'INFO')))
+
+        app.logger.addHandler(file_handler)
+        app.logger.setLevel(getattr(logging, app.config.get('LOG_LEVEL', 'INFO')))
+
+        app.logger.info('KB Support Basedoc startup')
+
+
+def register_error_handlers(app):
+    """
+    Enregistre les gestionnaires d'erreurs
+
+    Args:
+        app: Instance Flask
+    """
+    from flask import render_template
+
+    @app.errorhandler(404)
+    def not_found_error(error):
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(403)
+    def forbidden_error(error):
+        return render_template('errors/403.html'), 403
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()
+        return render_template('errors/500.html'), 500
+
+    @app.errorhandler(429)
+    def ratelimit_error(error):
+        return render_template('errors/429.html'), 429

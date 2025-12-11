@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Home - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">// Home</h2>
+    <div class="page-actions">
+        <a href="{{ url_for('procedures.new_procedure') }}" class="btn-primary">[+ Nouvelle procédure]</a>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">📚</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ stats.total_procedures }}</div>
+            <div class="stat-label">Procédures</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">📁</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ stats.total_categories }}</div>
+            <div class="stat-label">Catégories</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">🏷️</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ stats.total_tags }}</div>
+            <div class="stat-label">Tags</div>
+        </div>
+    </div>
+
+    <div class="stat-card stat-card-highlight">
+        <div class="stat-icon">✍️</div>
+        <div class="stat-content">
+            <div class="stat-value">{{ stats.my_procedures }}</div>
+            <div class="stat-label">Mes procédures</div>
+        </div>
+    </div>
+</div>
+
+<!-- Procédures récentes -->
+<div class="section">
+    <div class="section-header">
+        <h3 class="section-title">🕐 Récemment modifiées</h3>
+        <a href="{{ url_for('procedures.list_procedures') }}" class="section-link">[Voir tout]</a>
+    </div>
+
+    {% if recent_procedures %}
+    <div class="procedures-list">
+        {% for procedure in recent_procedures %}
+        <div class="procedure-card">
+            <div class="procedure-card-header">
+                <a href="{{ url_for('procedures.view_procedure', procedure_id=procedure.id) }}" class="procedure-title">
+                    <span class="procedure-id">[PROC-{{ "%04d"|format(procedure.id) }}]</span>
+                    {{ procedure.title }}
+                </a>
+                <div class="procedure-category" style="border-left-color: {{ procedure.category.color_code }}">
+                    {{ procedure.category.name }}
+                </div>
+            </div>
+
+            {% if procedure.description %}
+            <div class="procedure-description">
+                {{ procedure.description }}
+            </div>
+            {% endif %}
+
+            <div class="procedure-meta">
+                <span class="meta-item">
+                    <span class="meta-icon">👤</span>
+                    {{ procedure.creator.full_name if procedure.creator else 'Inconnu' }}
+                </span>
+
+                <span class="meta-item">
+                    <span class="meta-icon">📅</span>
+                    {{ procedure.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                </span>
+
+                {% if procedure.estimated_time %}
+                <span class="meta-item">
+                    <span class="meta-icon">⏱️</span>
+                    {{ procedure.estimated_time }} min
+                </span>
+                {% endif %}
+
+                {% if procedure.tags %}
+                <span class="meta-tags">
+                    {% for tag in procedure.tags[:3] %}
+                    <span class="tag">[{{ tag.name }}]</span>
+                    {% endfor %}
+                    {% if procedure.tags|length > 3 %}
+                    <span class="tag-more">[+{{ procedure.tags|length - 3 }}]</span>
+                    {% endif %}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p class="empty-message">Aucune procédure pour le moment</p>
+        <a href="{{ url_for('procedures.new_procedure') }}" class="btn-primary">[+ Créer la première procédure]</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick actions -->
+<div class="section">
+    <div class="section-header">
+        <h3 class="section-title">⚡ Actions rapides</h3>
+    </div>
+
+    <div class="quick-actions">
+        <a href="{{ url_for('procedures.new_procedure') }}" class="quick-action-card">
+            <div class="quick-action-icon">➕</div>
+            <div class="quick-action-title">Nouvelle procédure</div>
+            <div class="quick-action-desc">Créer une nouvelle procédure</div>
+        </a>
+
+        <a href="{{ url_for('search.search') }}" class="quick-action-card">
+            <div class="quick-action-icon">🔍</div>
+            <div class="quick-action-title">Rechercher</div>
+            <div class="quick-action-desc">Rechercher dans toutes les procédures</div>
+        </a>
+
+        <a href="{{ url_for('procedures.list_procedures') }}" class="quick-action-card">
+            <div class="quick-action-icon">📂</div>
+            <div class="quick-action-title">Explorer</div>
+            <div class="quick-action-desc">Parcourir toutes les catégories</div>
+        </a>
+
+        {% if current_user.is_admin %}
+        <a href="/admin" class="quick-action-card">
+            <div class="quick-action-icon">⚙️</div>
+            <div class="quick-action-title">Administration</div>
+            <div class="quick-action-desc">Gérer utilisateurs et paramètres</div>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

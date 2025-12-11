@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - KB Support Basedoc</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark_theme.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-header">
+            <div class="login-logo">
+                <div class="terminal-cursor">&gt;_</div>
+                <h1 class="login-title">KB_SUPPORT_BASEDOC</h1>
+            </div>
+            <p class="login-subtitle">Base de Connaissances IT</p>
+            <p class="login-company">{{ company_name }}</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="login-alerts">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span class="alert-icon">
+                                {% if category == 'error' %}✗{% elif category == 'success' %}✓{% else %}ℹ{% endif %}
+                            </span>
+                            <span class="alert-message">{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="login-form">
+            <div class="form-group">
+                <label for="email" class="form-label">
+                    <span class="terminal-prompt">&gt;</span> Email
+                </label>
+                <input type="email"
+                       id="email"
+                       name="email"
+                       class="form-input"
+                       placeholder="user@domain.com"
+                       required
+                       autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">
+                    <span class="terminal-prompt">&gt;</span> Password
+                </label>
+                <input type="password"
+                       id="password"
+                       name="password"
+                       class="form-input"
+                       placeholder="••••••••"
+                       required>
+            </div>
+
+            <div class="form-group form-checkbox">
+                <label for="remember" class="checkbox-label">
+                    <input type="checkbox" id="remember" name="remember" class="form-checkbox-input">
+                    <span class="checkbox-text">Remember me</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn-login">
+                [SE CONNECTER]
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <p class="login-footer-text">
+                <span class="terminal-prompt">#</span>
+                Version {{ version }} | {{ company_name }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Particles background effect (optionnel) -->
+    <div class="login-background">
+        <div class="code-rain">
+            <span class="code-char">0</span>
+            <span class="code-char">1</span>
+            <span class="code-char">0</span>
+            <span class="code-char">1</span>
+            <span class="code-char">0</span>
+        </div>
+    </div>
+
+    <script>
+        // Auto-focus sur email
+        document.getElementById('email').focus();
+
+        // Animation code rain (simple)
+        document.addEventListener('DOMContentLoaded', function() {
+            const codeRain = document.querySelector('.code-rain');
+            if (codeRain) {
+                setInterval(() => {
+                    const chars = codeRain.querySelectorAll('.code-char');
+                    chars.forEach(char => {
+                        char.textContent = Math.random() > 0.5 ? '1' : '0';
+                    });
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>
