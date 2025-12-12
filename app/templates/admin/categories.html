@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Catégories - Admin - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{{ url_for('admin.dashboard') }}">[Admin]</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>[Catégories]</span>
+        </div>
+        <h2 class="page-title">// Gestion des catégories</h2>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('admin.new_category') }}" class="btn-primary">[+ Nouvelle catégorie]</a>
+    </div>
+</div>
+
+<!-- Liste des catégories -->
+<div class="section">
+    {% if categories %}
+    <div class="categories-list">
+        {% for category in categories %}
+        <div class="category-item">
+            <div class="category-color" style="background-color: {{ category.color_code }}"></div>
+            <div class="category-info">
+                <div class="category-name">{{ category.name }}</div>
+                {% if category.description %}
+                <div class="category-description">{{ category.description }}</div>
+                {% endif %}
+                <div class="category-meta">
+                    <span class="meta-badge">Ordre: {{ category.display_order }}</span>
+                    <span class="meta-badge">{{ category.procedures.count() }} procédure(s)</span>
+                </div>
+            </div>
+            <div class="category-actions">
+                <a href="{{ url_for('admin.edit_category', category_id=category.id) }}" class="btn-sm">[Modifier]</a>
+                {% if category.procedures.count() == 0 %}
+                <form method="POST" action="{{ url_for('admin.delete_category', category_id=category.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Supprimer cette catégorie ?')">[Supprimer]</button>
+                </form>
+                {% else %}
+                <button class="btn-sm" disabled title="Impossible de supprimer : contient des procédures">[Supprimer]</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📁</div>
+        <p class="empty-message">Aucune catégorie pour le moment</p>
+        <a href="{{ url_for('admin.new_category') }}" class="btn-primary">[+ Créer la première catégorie]</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.categories-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    transition: all 0.2s;
+}
+
+.category-item:hover {
+    border-color: var(--primary-color);
+    transform: translateX(4px);
+}
+
+.category-color {
+    width: 4px;
+    height: 60px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.category-info {
+    flex: 1;
+}
+
+.category-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.category-description {
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.category-meta {
+    display: flex;
+    gap: 1rem;
+}
+
+.meta-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-family: 'Fira Code', monospace;
+    color: var(--text-secondary);
+}
+
+.category-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+</style>
+{% endblock %}

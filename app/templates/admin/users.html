@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Utilisateurs - Admin - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{{ url_for('admin.dashboard') }}">[Admin]</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>[Utilisateurs]</span>
+        </div>
+        <h2 class="page-title">// Gestion des utilisateurs</h2>
+    </div>
+</div>
+
+<!-- Liste des utilisateurs -->
+<div class="section">
+    <div class="users-table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom complet</th>
+                    <th>Email</th>
+                    <th>Rôle</th>
+                    <th>Statut</th>
+                    <th>Dernière connexion</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="{% if not user.is_active %}inactive-row{% endif %}">
+                    <td class="user-id">#{{ user.id }}</td>
+                    <td class="user-name">
+                        {{ user.full_name }}
+                        {% if user.id == current_user.id %}
+                        <span class="badge badge-primary">[Vous]</span>
+                        {% endif %}
+                    </td>
+                    <td class="user-email">{{ user.email }}</td>
+                    <td>
+                        {% if user.is_admin %}
+                        <span class="badge badge-admin">👑 Admin</span>
+                        {% else %}
+                        <span class="badge badge-user">👤 User</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.is_active %}
+                        <span class="badge badge-success">✓ Actif</span>
+                        {% else %}
+                        <span class="badge badge-danger">✗ Inactif</span>
+                        {% endif %}
+                    </td>
+                    <td class="user-date">
+                        {% if user.last_login %}
+                        {{ user.last_login.strftime('%d/%m/%Y %H:%M') }}
+                        {% else %}
+                        <span class="text-muted">Jamais</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions-cell">
+                        {% if user.id != current_user.id %}
+                        <form method="POST" action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn-sm {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}">
+                                [{{ 'Désactiver' if user.is_active else 'Activer' }}]
+                            </button>
+                        </form>
+
+                        <form method="POST" action="{{ url_for('admin.toggle_user_admin', user_id=user.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn-sm">
+                                [{{ 'Rétrograder' if user.is_admin else 'Promouvoir admin' }}]
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.users-table-container {
+    overflow-x: auto;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.data-table thead {
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.data-table th {
+    text-align: left;
+    padding: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: 'Fira Code', monospace;
+    font-size: 0.875rem;
+}
+
+.data-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tr:hover {
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.inactive-row {
+    opacity: 0.6;
+}
+
+.user-id {
+    font-family: 'Fira Code', monospace;
+    color: var(--text-secondary);
+}
+
+.user-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.user-email {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.user-date {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Fira Code', monospace;
+}
+
+.badge-primary {
+    background: var(--primary-color);
+    color: var(--bg-primary);
+}
+
+.badge-admin {
+    background: #ffd700;
+    color: #1a1a2e;
+}
+
+.badge-user {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+.badge-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.badge-danger {
+    background: var(--danger-color);
+    color: white;
+}
+
+.actions-cell {
+    white-space: nowrap;
+}
+
+.text-muted {
+    color: var(--text-secondary);
+}
+</style>
+{% endblock %}

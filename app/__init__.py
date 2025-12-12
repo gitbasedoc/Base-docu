@@ -68,11 +68,13 @@ def create_app(config_name=None):
         from app.routes.procedures import procedures_bp
         from app.routes.search import search_bp
         from app.routes.api_ai import api_ai_bp
+        from app.routes.admin import admin_bp
 
         app.register_blueprint(auth_bp)
         app.register_blueprint(procedures_bp)
         app.register_blueprint(search_bp)
         app.register_blueprint(api_ai_bp)
+        app.register_blueprint(admin_bp)
 
         # Context processors
         @app.context_processor

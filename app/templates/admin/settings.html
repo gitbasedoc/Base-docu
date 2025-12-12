@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Paramètres - Admin - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{{ url_for('admin.dashboard') }}">[Admin]</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>[Paramètres]</span>
+        </div>
+        <h2 class="page-title">// Paramètres de l'application</h2>
+    </div>
+</div>
+
+<form method="POST" action="{{ url_for('admin.update_settings') }}" class="settings-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    <div class="section">
+        <h3 class="section-title">🏢 Informations générales</h3>
+
+        <div class="form-group">
+            <label for="app_name" class="form-label">Nom de l'application</label>
+            <input type="text"
+                   id="app_name"
+                   name="app_name"
+                   class="form-input"
+                   value="{{ settings.get('app_name', 'KB Support Basedoc') }}">
+        </div>
+
+        <div class="form-group">
+            <label for="company_name" class="form-label">Nom de l'entreprise</label>
+            <input type="text"
+                   id="company_name"
+                   name="company_name"
+                   class="form-input"
+                   value="{{ settings.get('company_name', 'Support IT') }}">
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">🔒 Sécurité</h3>
+
+        <div class="form-group">
+            <label for="session_timeout" class="form-label">Délai d'expiration de session (minutes)</label>
+            <input type="number"
+                   id="session_timeout"
+                   name="session_timeout"
+                   class="form-input"
+                   value="{{ settings.get('session_timeout', '60') }}"
+                   min="15"
+                   max="1440">
+            <div class="form-help">Durée d'inactivité avant déconnexion automatique</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">
+                <input type="checkbox"
+                       name="require_password_change"
+                       value="true"
+                       {% if settings.get('require_password_change') == 'true' %}checked{% endif %}>
+                Forcer le changement de mot de passe tous les 90 jours
+            </label>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">📁 Fichiers</h3>
+
+        <div class="form-group">
+            <label for="max_upload_size" class="form-label">Taille maximale d'upload (MB)</label>
+            <input type="number"
+                   id="max_upload_size"
+                   name="max_upload_size"
+                   class="form-input"
+                   value="{{ settings.get('max_upload_size', '50') }}"
+                   min="1"
+                   max="500">
+        </div>
+
+        <div class="form-group">
+            <label for="allowed_extensions" class="form-label">Extensions autorisées</label>
+            <input type="text"
+                   id="allowed_extensions"
+                   name="allowed_extensions"
+                   class="form-input"
+                   value="{{ settings.get('allowed_extensions', 'pdf,doc,docx,xls,xlsx,txt,png,jpg,jpeg,gif,zip,tar,gz,sh,py,ps1') }}"
+                   placeholder="pdf,doc,txt,png,jpg">
+            <div class="form-help">Séparez les extensions par des virgules</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">🤖 Intelligence Artificielle</h3>
+
+        <div class="form-group">
+            <label class="form-label">
+                <input type="checkbox"
+                       name="ai_enabled"
+                       value="true"
+                       {% if settings.get('ai_enabled', 'true') == 'true' %}checked{% endif %}>
+                Activer les fonctionnalités IA (génération de tags, reformulation)
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label for="ai_model" class="form-label">Modèle IA</label>
+            <select id="ai_model" name="ai_model" class="form-select">
+                <option value="claude-sonnet-4-5-20250929" {% if settings.get('ai_model') == 'claude-sonnet-4-5-20250929' %}selected{% endif %}>
+                    Claude Sonnet 4.5 (Recommandé)
+                </option>
+                <option value="claude-3-5-sonnet-20241022" {% if settings.get('ai_model') == 'claude-3-5-sonnet-20241022' %}selected{% endif %}>
+                    Claude 3.5 Sonnet
+                </option>
+            </select>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">📧 Notifications</h3>
+
+        <div class="form-group">
+            <label class="form-label">
+                <input type="checkbox"
+                       name="email_notifications"
+                       value="true"
+                       {% if settings.get('email_notifications') == 'true' %}checked{% endif %}>
+                Activer les notifications par email
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label for="smtp_host" class="form-label">Serveur SMTP</label>
+            <input type="text"
+                   id="smtp_host"
+                   name="smtp_host"
+                   class="form-input"
+                   value="{{ settings.get('smtp_host', '') }}"
+                   placeholder="smtp.example.com">
+        </div>
+
+        <div class="form-group">
+            <label for="smtp_from" class="form-label">Expéditeur par défaut</label>
+            <input type="email"
+                   id="smtp_from"
+                   name="smtp_from"
+                   class="form-input"
+                   value="{{ settings.get('smtp_from', '') }}"
+                   placeholder="noreply@example.com">
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <a href="{{ url_for('admin.dashboard') }}" class="btn-secondary">[Annuler]</a>
+        <button type="submit" class="btn-primary">[Enregistrer les paramètres]</button>
+    </div>
+</form>
+
+<style>
+.settings-form {
+    max-width: 800px;
+}
+
+.settings-form .section {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.settings-form .section-title {
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+</style>
+{% endblock %}
