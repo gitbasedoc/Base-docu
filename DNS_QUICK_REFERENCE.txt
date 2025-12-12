@@ -1,0 +1,123 @@
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║                   🌐 CONFIGURATION DNS - ACTION REQUISE               ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 1 : CONFIGURER LE DNS                                         │
+└───────────────────────────────────────────────────────────────────────┘
+
+  Créez cet enregistrement DNS chez votre fournisseur :
+
+  ┌─────────────────────────────────────────────┐
+  │  Type      : A                              │
+  │  Nom       : gagneraud                      │
+  │  Domaine   : basedoc.fr                     │
+  │  Cible/IP  : 193.70.41.117                  │
+  │  TTL       : 3600 (ou Auto)                 │
+  └─────────────────────────────────────────────┘
+
+  Résultat : gagneraud.basedoc.fr → 193.70.41.117
+
+┌───────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 2 : VÉRIFIER LA PROPAGATION (attendre 5-30 min)               │
+└───────────────────────────────────────────────────────────────────────┘
+
+  Depuis votre terminal :
+
+    nslookup gagneraud.basedoc.fr
+
+  Ou en ligne :
+
+    https://dnschecker.org/#A/gagneraud.basedoc.fr
+
+  ✅ Vous devez voir : 193.70.41.117
+
+┌───────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 3 : OBTENIR LE CERTIFICAT SSL                                 │
+└───────────────────────────────────────────────────────────────────────┘
+
+  Connectez-vous au serveur :
+
+    ssh ubuntu@193.70.41.117
+
+  Lancez Certbot :
+
+    sudo certbot --nginx -d gagneraud.basedoc.fr \
+      --non-interactive --agree-tos \
+      --email dheurtebise@basedoc.fr --redirect
+
+  ✅ Succès si vous voyez :
+     "Congratulations! You have successfully enabled HTTPS"
+
+┌───────────────────────────────────────────────────────────────────────┐
+│  ÉTAPE 4 : TESTER L'APPLICATION                                      │
+└───────────────────────────────────────────────────────────────────────┘
+
+  Ouvrez votre navigateur :
+
+    https://gagneraud.basedoc.fr
+
+  ✅ Vous devriez voir la page de login avec le cadenas 🔒
+
+  Connectez-vous avec :
+    Email : dheurtebise@basedoc.fr
+    Mot de passe : [celui que vous avez défini]
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║  📋 FOURNISSEURS DNS COURANTS                                        ║
+║                                                                       ║
+║  OVH           → www.ovh.com/manager/                                ║
+║                  Web Cloud → Noms de domaine → Zone DNS              ║
+║                                                                       ║
+║  CloudFlare    → dash.cloudflare.com                                 ║
+║                  Sélectionner domaine → DNS → Records                ║
+║                  ⚠️  Désactivez le proxy (icône grise, pas orange)   ║
+║                                                                       ║
+║  Gandi         → admin.gandi.net                                     ║
+║                  Noms de domaine → Zone DNS                          ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║  ⏱️  TEMPS DE PROPAGATION                                            ║
+║                                                                       ║
+║  CloudFlare    : 2-5 minutes                                         ║
+║  OVH           : 5-30 minutes                                        ║
+║  Gandi         : 15-60 minutes                                       ║
+║  Autres        : 30-60 minutes                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║  🧪 TESTER SANS DNS (temporaire)                                     ║
+║                                                                       ║
+║  En attendant la propagation DNS, testez via l'IP :                  ║
+║                                                                       ║
+║    http://193.70.41.117                                              ║
+║                                                                       ║
+║  ⚠️  Utilisez http:// (pas https://)                                 ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║  📞 BESOIN D'AIDE ?                                                  ║
+║                                                                       ║
+║  Consultez les guides complets :                                     ║
+║                                                                       ║
+║  - DNS_CONFIGURATION.md    → Guide détaillé DNS                      ║
+║  - DEPLOYMENT_STATUS.md    → État complet du déploiement             ║
+║  - DEPLOY_GUIDE.md         → Guide de déploiement                    ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║  ✅ L'APPLICATION EST DÉJÀ EN LIGNE !                                ║
+║                                                                       ║
+║  Il ne manque que cette simple configuration DNS pour activer HTTPS  ║
+║                                                                       ║
+║  Temps estimé : 5 minutes + 5-30 minutes d'attente                   ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
