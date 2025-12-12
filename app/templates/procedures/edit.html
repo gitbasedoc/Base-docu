@@ -4,8 +4,8 @@
 
 {% block head %}
 {{ super() }}
-<!-- TinyMCE Editor -->
-<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<!-- TinyMCE Editor - Community Version (no API key needed) -->
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
 {% endblock %}
 
 {% block content %}
@@ -172,7 +172,16 @@
 // ===========================
 // TinyMCE Initialization
 // ===========================
-tinymce.init({
+// Attendre que le DOM et TinyMCE soient chargés
+document.addEventListener('DOMContentLoaded', function() {
+    // Vérifier que TinyMCE est chargé
+    if (typeof tinymce === 'undefined') {
+        console.error('TinyMCE n\'est pas chargé !');
+        alert('Erreur : L\'éditeur de texte n\'a pas pu se charger. Rechargez la page.');
+        return;
+    }
+
+    tinymce.init({
     selector: '#content',
     height: 600,
     menubar: true,
@@ -452,6 +461,9 @@ async function reformulateContent() {
         btn.textContent = '[Améliorer la rédaction]';
     }
 }
+
+// Fin du DOMContentLoaded
+});
 </script>
 
 <style>
