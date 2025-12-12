@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifier' if procedure else 'Nouvelle' }} procédure - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{{ url_for('procedures.home') }}">[Home]</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="{{ url_for('procedures.list_procedures') }}">[Procédures]</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>{% if procedure %}[Modifier]{% else %}[Nouvelle]{% endif %}</span>
+        </div>
+        <h2 class="page-title">{{ '// Modifier procédure' if procedure else '// Nouvelle procédure' }}</h2>
+    </div>
+</div>
+
+<form method="POST" enctype="multipart/form-data" class="procedure-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    <!-- Titre -->
+    <div class="form-group">
+        <label for="title" class="form-label">
+            <span class="required">*</span> Titre
+        </label>
+        <input type="text"
+               id="title"
+               name="title"
+               class="form-input"
+               value="{{ procedure.title if procedure else '' }}"
+               placeholder="Ex: Réinitialiser un mot de passe utilisateur"
+               required
+               autofocus>
+    </div>
+
+    <!-- Catégorie -->
+    <div class="form-group">
+        <label for="category_id" class="form-label">
+            <span class="required">*</span> Catégorie
+        </label>
+        <select id="category_id" name="category_id" class="form-select" required>
+            <option value="">Choisir une catégorie...</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}"
+                    {% if procedure and procedure.category_id == category.id %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Description -->
+    <div class="form-group">
+        <label for="description" class="form-label">
+            Description courte
+        </label>
+        <textarea id="description"
+                  name="description"
+                  class="form-textarea"
+                  rows="2"
+                  placeholder="Brève description de la procédure (optionnel)">{{ procedure.description if procedure else '' }}</textarea>
+    </div>
+
+    <!-- Contenu -->
+    <div class="form-group">
+        <label for="content" class="form-label">
+            <span class="required">*</span> Contenu de la procédure
+        </label>
+        <textarea id="content"
+                  name="content"
+                  class="form-textarea form-textarea-large"
+                  rows="20"
+                  placeholder="Rédigez la procédure ici... Vous pouvez utiliser du HTML ou Markdown."
+                  required>{{ procedure.content if procedure else '' }}</textarea>
+        <div class="form-help">
+            💡 Astuce : Utilisez des listes numérotées pour les étapes. Exemple:
+            <code>&lt;ol&gt;&lt;li&gt;Étape 1&lt;/li&gt;&lt;li&gt;Étape 2&lt;/li&gt;&lt;/ol&gt;</code>
+        </div>
+    </div>
+
+    <!-- Temps estimé -->
+    <div class="form-group">
+        <label for="estimated_time" class="form-label">
+            Temps estimé (minutes)
+        </label>
+        <input type="number"
+               id="estimated_time"
+               name="estimated_time"
+               class="form-input"
+               value="{{ procedure.estimated_time if procedure else '' }}"
+               placeholder="Ex: 15"
+               min="1">
+    </div>
+
+    <!-- Tags -->
+    <div class="form-group">
+        <label class="form-label">
+            Tags
+        </label>
+        <div id="tags-container">
+            {% if procedure and procedure.tags %}
+            {% for tag in procedure.tags %}
+            <div class="tag-input-group">
+                <input type="text" name="tags[]" class="form-input form-input-small" value="{{ tag.name }}" placeholder="Tag">
+                <button type="button" class="btn-remove-tag" onclick="removeTag(this)">[×]</button>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="tag-input-group">
+                <input type="text" name="tags[]" class="form-input form-input-small" placeholder="Tag">
+                <button type="button" class="btn-remove-tag" onclick="removeTag(this)">[×]</button>
+            </div>
+            {% endif %}
+        </div>
+        <button type="button" class="btn-secondary btn-sm" onclick="addTag()">[+ Ajouter un tag]</button>
+        <div class="form-help">
+            💡 Les tags aident à organiser et retrouver les procédures. Ex: "réseau", "active-directory", "urgent"
+        </div>
+    </div>
+
+    <!-- AI Assistance (si clé API configurée) -->
+    {% if config.get('CLAUDE_API_KEY') %}
+    <div class="form-group">
+        <label class="form-label">
+            🤖 Assistance IA
+        </label>
+        <div class="ai-buttons">
+            <button type="button" class="btn-secondary btn-sm" onclick="generateTags()">
+                [Générer des tags automatiquement]
+            </button>
+            <button type="button" class="btn-secondary btn-sm" onclick="reformulateContent()">
+                [Améliorer la rédaction]
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="form-actions">
+        <a href="{{ url_for('procedures.view_procedure', procedure_id=procedure.id) if procedure else url_for('procedures.list_procedures') }}" class="btn-secondary">
+            [Annuler]
+        </a>
+        <button type="submit" class="btn-primary">
+            [{{ 'Enregistrer les modifications' if procedure else 'Créer la procédure' }}]
+        </button>
+    </div>
+</form>
+
+<script>
+function addTag() {
+    const container = document.getElementById('tags-container');
+    const tagGroup = document.createElement('div');
+    tagGroup.className = 'tag-input-group';
+    tagGroup.innerHTML = `
+        <input type="text" name="tags[]" class="form-input form-input-small" placeholder="Tag">
+        <button type="button" class="btn-remove-tag" onclick="removeTag(this)">[×]</button>
+    `;
+    container.appendChild(tagGroup);
+}
+
+function removeTag(btn) {
+    const container = document.getElementById('tags-container');
+    if (container.children.length > 1) {
+        btn.parentElement.remove();
+    } else {
+        // Garder au moins un champ vide
+        btn.previousElementSibling.value = '';
+    }
+}
+
+async function generateTags() {
+    const content = document.getElementById('content').value;
+    const title = document.getElementById('title').value;
+
+    if (!content || !title) {
+        alert('Veuillez remplir le titre et le contenu avant de générer des tags.');
+        return;
+    }
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '[Génération en cours...]';
+
+    try {
+        const response = await fetch('/api/ai/generate-tags', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name="csrf_token"]').value
+            },
+            body: JSON.stringify({ title, content })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.tags) {
+            // Effacer les tags existants
+            document.getElementById('tags-container').innerHTML = '';
+
+            // Ajouter les nouveaux tags
+            data.tags.forEach(tag => {
+                addTag();
+                const inputs = document.querySelectorAll('#tags-container input[name="tags[]"]');
+                inputs[inputs.length - 1].value = tag;
+            });
+
+            alert('Tags générés avec succès !');
+        } else {
+            alert('Erreur lors de la génération des tags: ' + (data.error || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        alert('Erreur: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '[Générer des tags automatiquement]';
+    }
+}
+
+async function reformulateContent() {
+    const content = document.getElementById('content').value;
+
+    if (!content) {
+        alert('Veuillez remplir le contenu avant de le reformuler.');
+        return;
+    }
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '[Reformulation en cours...]';
+
+    try {
+        const response = await fetch('/api/ai/reformulate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name="csrf_token"]').value
+            },
+            body: JSON.stringify({ content })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.content) {
+            if (confirm('Remplacer le contenu actuel par la version améliorée ?')) {
+                document.getElementById('content').value = data.content;
+                alert('Contenu reformulé avec succès !');
+            }
+        } else {
+            alert('Erreur lors de la reformulation: ' + (data.error || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        alert('Erreur: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '[Améliorer la rédaction]';
+    }
+}
+</script>
+
+<style>
+.procedure-form {
+    max-width: 900px;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    font-family: 'Fira Code', monospace;
+}
+
+.required {
+    color: var(--danger-color);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+}
+
+.form-textarea-large {
+    font-family: 'Fira Code', monospace;
+    font-size: 0.95rem;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+}
+
+.form-help {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.form-help code {
+    background: var(--surface-color);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: 'Fira Code', monospace;
+}
+
+.tag-input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-input-small {
+    flex: 1;
+}
+
+.btn-remove-tag {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-family: 'Fira Code', monospace;
+}
+
+.ai-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+</style>
+{% endblock %}

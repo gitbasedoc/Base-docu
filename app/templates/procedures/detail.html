@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}{{ procedure.title }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{{ url_for('procedures.home') }}">[Home]</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="{{ url_for('procedures.list_procedures') }}">[Procédures]</a>
+            <span class="breadcrumb-sep">/</span>
+            <span class="procedure-id">[PROC-{{ "%04d"|format(procedure.id) }}]</span>
+        </div>
+        <h2 class="page-title">{{ procedure.title }}</h2>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('procedures.edit_procedure', procedure_id=procedure.id) }}" class="btn-primary">[Modifier]</a>
+    </div>
+</div>
+
+<!-- Métadonnées -->
+<div class="procedure-metadata">
+    <div class="metadata-grid">
+        <div class="metadata-item">
+            <span class="metadata-label">Catégorie</span>
+            <span class="metadata-value" style="border-left: 3px solid {{ procedure.category.color_code }}; padding-left: 0.5rem;">
+                {{ procedure.category.name }}
+            </span>
+        </div>
+
+        <div class="metadata-item">
+            <span class="metadata-label">Créé par</span>
+            <span class="metadata-value">{{ procedure.creator.full_name if procedure.creator else 'Inconnu' }}</span>
+        </div>
+
+        <div class="metadata-item">
+            <span class="metadata-label">Dernière modification</span>
+            <span class="metadata-value">{{ procedure.updated_at.strftime('%d/%m/%Y %H:%M') }}</span>
+        </div>
+
+        {% if procedure.estimated_time %}
+        <div class="metadata-item">
+            <span class="metadata-label">Temps estimé</span>
+            <span class="metadata-value">{{ procedure.estimated_time }} minutes</span>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if procedure.tags %}
+    <div class="metadata-tags">
+        <span class="metadata-label">Tags</span>
+        <div class="tags-list">
+            {% for tag in procedure.tags %}
+            <span class="tag">[{{ tag.name }}]</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Description -->
+{% if procedure.description %}
+<div class="section">
+    <h3 class="section-title">📝 Description</h3>
+    <div class="procedure-description-block">
+        {{ procedure.description }}
+    </div>
+</div>
+{% endif %}
+
+<!-- Contenu -->
+<div class="section">
+    <h3 class="section-title">📄 Procédure</h3>
+    <div class="procedure-content">
+        {{ procedure.content|safe }}
+    </div>
+</div>
+
+<!-- Pièces jointes -->
+{% if procedure.attachments %}
+<div class="section">
+    <h3 class="section-title">📎 Pièces jointes</h3>
+    <div class="attachments-list">
+        {% for attachment in procedure.attachments %}
+        <div class="attachment-item">
+            <div class="attachment-icon">
+                {% if attachment.file_type == 'pdf' %}📕
+                {% elif attachment.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}🖼️
+                {% elif attachment.file_type in ['zip', 'tar', 'gz'] %}📦
+                {% elif attachment.file_type in ['sh', 'py', 'js'] %}💻
+                {% else %}📄
+                {% endif %}
+            </div>
+            <div class="attachment-info">
+                <div class="attachment-filename">{{ attachment.filename }}</div>
+                <div class="attachment-meta">
+                    {{ (attachment.file_size / 1024)|round(1) }} KB
+                    • Ajouté le {{ attachment.uploaded_at.strftime('%d/%m/%Y') }}
+                </div>
+            </div>
+            <a href="/uploads/{{ attachment.storage_path }}" class="btn-sm" download>[Télécharger]</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Versions -->
+{% if versions %}
+<div class="section">
+    <h3 class="section-title">📜 Historique des versions</h3>
+    <div class="versions-list">
+        {% for version in versions %}
+        <div class="version-item">
+            <div class="version-number">v{{ version.version_number }}</div>
+            <div class="version-info">
+                <div class="version-user">{{ version.user.full_name if version.user else 'Inconnu' }}</div>
+                <div class="version-date">{{ version.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Actions -->
+<div class="section">
+    <div class="procedure-actions-footer">
+        <a href="{{ url_for('procedures.list_procedures') }}" class="btn-secondary">[← Retour à la liste]</a>
+        <a href="{{ url_for('procedures.edit_procedure', procedure_id=procedure.id) }}" class="btn-primary">[Modifier]</a>
+        {% if not procedure.is_archived %}
+        <form method="POST" action="{{ url_for('procedures.archive_procedure', procedure_id=procedure.id) }}" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn-warning" onclick="return confirm('Archiver cette procédure ?')">[Archiver]</button>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('procedures.restore_procedure', procedure_id=procedure.id) }}" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn-success">[Restaurer]</button>
+        </form>
+        {% endif %}
+        {% if current_user.is_admin %}
+        <form method="POST" action="{{ url_for('procedures.delete_procedure', procedure_id=procedure.id) }}" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn-danger" onclick="return confirm('ATTENTION : Supprimer définitivement cette procédure ?')">[Supprimer]</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.procedure-content {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    line-height: 1.8;
+}
+
+.procedure-description-block {
+    background: var(--surface-color);
+    border-left: 3px solid var(--primary-color);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.metadata-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.metadata-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-family: 'Fira Code', monospace;
+}
+
+.metadata-value {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.metadata-tags {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.tags-list {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.attachments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+}
+
+.attachment-icon {
+    font-size: 2rem;
+}
+
+.attachment-info {
+    flex: 1;
+}
+
+.attachment-filename {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.attachment-meta {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.versions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.version-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+}
+
+.version-number {
+    font-family: 'Fira Code', monospace;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.version-info {
+    flex: 1;
+}
+
+.version-user {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.version-date {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.procedure-actions-footer {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+</style>
+{% endblock %}

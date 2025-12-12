@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Recherche - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">// Recherche</h2>
+</div>
+
+<!-- Formulaire de recherche -->
+<div class="search-section">
+    <form method="GET" action="{{ url_for('search.search') }}" class="search-form">
+        <div class="search-input-group">
+            <input type="text"
+                   name="q"
+                   class="search-input"
+                   value="{{ query if query else '' }}"
+                   placeholder="Rechercher dans les procédures..."
+                   autofocus>
+            <button type="submit" class="btn-search">[Rechercher]</button>
+        </div>
+
+        <div class="search-filters">
+            <label class="filter-checkbox">
+                <input type="checkbox" name="in_title" value="1" {% if in_title %}checked{% endif %}>
+                <span>Titre</span>
+            </label>
+            <label class="filter-checkbox">
+                <input type="checkbox" name="in_content" value="1" {% if in_content %}checked{% endif %}>
+                <span>Contenu</span>
+            </label>
+            <label class="filter-checkbox">
+                <input type="checkbox" name="in_tags" value="1" {% if in_tags %}checked{% endif %}>
+                <span>Tags</span>
+            </label>
+        </div>
+    </form>
+</div>
+
+<!-- Résultats -->
+{% if query %}
+    {% if results %}
+    <div class="search-results">
+        <div class="search-results-header">
+            <h3 class="section-title">📊 {{ results|length }} résultat(s) trouvé(s) pour "{{ query }}"</h3>
+        </div>
+
+        <div class="procedures-list">
+            {% for procedure in results %}
+            <div class="procedure-card">
+                <div class="procedure-card-header">
+                    <a href="{{ url_for('procedures.view_procedure', procedure_id=procedure.id) }}" class="procedure-title">
+                        <span class="procedure-id">[PROC-{{ "%04d"|format(procedure.id) }}]</span>
+                        {{ procedure.title }}
+                    </a>
+                    <div class="procedure-category" style="border-left-color: {{ procedure.category.color_code }}">
+                        {{ procedure.category.name }}
+                    </div>
+                </div>
+
+                {% if procedure.description %}
+                <div class="procedure-description">
+                    {{ procedure.description }}
+                </div>
+                {% endif %}
+
+                <div class="procedure-meta">
+                    <span class="meta-item">
+                        <span class="meta-icon">👤</span>
+                        {{ procedure.creator.full_name if procedure.creator else 'Inconnu' }}
+                    </span>
+
+                    <span class="meta-item">
+                        <span class="meta-icon">📅</span>
+                        {{ procedure.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                    </span>
+
+                    {% if procedure.estimated_time %}
+                    <span class="meta-item">
+                        <span class="meta-icon">⏱️</span>
+                        {{ procedure.estimated_time }} min
+                    </span>
+                    {% endif %}
+
+                    {% if procedure.tags %}
+                    <span class="meta-tags">
+                        {% for tag in procedure.tags[:3] %}
+                        <span class="tag">[{{ tag.name }}]</span>
+                        {% endfor %}
+                        {% if procedure.tags|length > 3 %}
+                        <span class="tag-more">[+{{ procedure.tags|length - 3 }}]</span>
+                        {% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="procedure-actions">
+                    <a href="{{ url_for('procedures.view_procedure', procedure_id=procedure.id) }}" class="btn-sm">[Voir]</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p class="empty-message">Aucun résultat pour "{{ query }}"</p>
+        <p class="empty-description">Essayez avec des mots-clés différents ou moins spécifiques.</p>
+    </div>
+    {% endif %}
+{% else %}
+<div class="search-suggestions">
+    <h3 class="section-title">💡 Suggestions de recherche</h3>
+    <div class="suggestions-grid">
+        <div class="suggestion-card">
+            <div class="suggestion-icon">🔑</div>
+            <div class="suggestion-title">Authentification</div>
+            <div class="suggestion-desc">mot de passe, login, AD, compte</div>
+        </div>
+
+        <div class="suggestion-card">
+            <div class="suggestion-icon">🌐</div>
+            <div class="suggestion-title">Réseau</div>
+            <div class="suggestion-desc">wifi, DNS, IP, routeur</div>
+        </div>
+
+        <div class="suggestion-card">
+            <div class="suggestion-icon">💾</div>
+            <div class="suggestion-title">Stockage</div>
+            <div class="suggestion-desc">sauvegarde, disque, NAS</div>
+        </div>
+
+        <div class="suggestion-card">
+            <div class="suggestion-icon">🖨️</div>
+            <div class="suggestion-title">Imprimantes</div>
+            <div class="suggestion-desc">driver, installation, bourrage</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.search-section {
+    margin-bottom: 2rem;
+}
+
+.search-form {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.search-input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.search-input {
+    flex: 1;
+    padding: 1rem;
+    background: var(--surface-color);
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(0, 255, 136, 0.1);
+}
+
+.btn-search {
+    padding: 1rem 2rem;
+    background: var(--primary-color);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 0.5rem;
+    font-family: 'Fira Code', monospace;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-search:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.search-filters {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+.filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-family: 'Fira Code', monospace;
+}
+
+.filter-checkbox input {
+    cursor: pointer;
+}
+
+.search-results-header {
+    margin-bottom: 1.5rem;
+}
+
+.search-suggestions {
+    margin-top: 3rem;
+}
+
+.suggestions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.suggestion-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.suggestion-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.15);
+}
+
+.suggestion-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.suggestion-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.suggestion-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+</style>
+{% endblock %}

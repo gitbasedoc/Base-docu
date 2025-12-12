@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Erreur serveur - KB Support Basedoc{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-container">
+        <div class="error-code">500</div>
+        <div class="error-title">Erreur serveur</div>
+        <div class="error-message">
+            <p>Une erreur inattendue s'est produite.</p>
+            <p>Nos équipes ont été notifiées et travaillent sur le problème.</p>
+        </div>
+        <div class="error-actions">
+            <a href="{{ url_for('procedures.home') }}" class="btn btn-primary">
+                <span class="btn-icon">🏠</span>
+                Retour à l'accueil
+            </a>
+            <a href="javascript:history.back()" class="btn btn-secondary">
+                <span class="btn-icon">←</span>
+                Page précédente
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 2rem;
+}
+
+.error-container {
+    text-align: center;
+    max-width: 600px;
+}
+
+.error-code {
+    font-size: 8rem;
+    font-weight: 700;
+    color: var(--danger-color);
+    font-family: 'Fira Code', monospace;
+    line-height: 1;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 20px rgba(255, 82, 82, 0.3);
+}
+
+.error-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.error-message {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.error-message p {
+    margin-bottom: 0.5rem;
+}
+
+.error-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.error-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+</style>
+{% endblock %}
