@@ -2,6 +2,24 @@
 
 Base de connaissances IT pour le service support de Gagneraud.
 
+## 📢 État du Déploiement
+
+🎉 **L'application est déployée et opérationnelle !**
+
+- ✅ Application en cours d'exécution sur `193.70.41.117`
+- ✅ Base de données PostgreSQL configurée
+- ✅ Administrateur créé (dheurtebise@basedoc.fr)
+- ⏳ **En attente : Configuration DNS pour HTTPS**
+
+📖 **Guides disponibles** :
+- 📊 [DEPLOYMENT_STATUS.md](./DEPLOYMENT_STATUS.md) - État actuel du déploiement
+- 🌐 [DNS_CONFIGURATION.md](./DNS_CONFIGURATION.md) - Configuration DNS (action requise)
+- 🚀 [DEPLOY_GUIDE.md](./DEPLOY_GUIDE.md) - Guide de déploiement complet
+- ⚡ [QUICKSTART.md](./QUICKSTART.md) - Démarrage rapide
+- 📋 [SUMMARY.md](./SUMMARY.md) - Résumé complet du projet
+
+---
+
 ## 🎯 Description
 
 Application web Flask de gestion de procédures IT avec :

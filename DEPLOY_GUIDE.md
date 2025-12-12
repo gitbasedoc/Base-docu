@@ -1,5 +1,22 @@
 # 🚀 Guide de Déploiement Automatique
 
+## ⚠️ IMPORTANT : Avant de commencer !
+
+### 🌐 Configuration DNS OBLIGATOIRE
+
+**Pour que HTTPS fonctionne, vous DEVEZ configurer le DNS AVANT ou APRÈS le déploiement.**
+
+Créez un enregistrement DNS de type **A** :
+```
+gagneraud.basedoc.fr  →  193.70.41.117
+```
+
+📖 **Guide détaillé** : Voir [DNS_CONFIGURATION.md](./DNS_CONFIGURATION.md)
+
+💡 **Note** : Vous pouvez déployer l'application d'abord et configurer le DNS ensuite. L'application fonctionnera en HTTP, puis vous activerez HTTPS une fois le DNS configuré.
+
+---
+
 ## Méthode 1 : Déploiement en une commande (RECOMMANDÉ)
 
 ### Sur le serveur VPS :
