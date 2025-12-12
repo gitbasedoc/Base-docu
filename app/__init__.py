@@ -69,12 +69,23 @@ def create_app(config_name=None):
         from app.routes.search import search_bp
         from app.routes.api_ai import api_ai_bp
         from app.routes.admin import admin_bp
+        from app.routes.files import files_bp
 
         app.register_blueprint(auth_bp)
         app.register_blueprint(procedures_bp)
         app.register_blueprint(search_bp)
         app.register_blueprint(api_ai_bp)
         app.register_blueprint(admin_bp)
+        app.register_blueprint(files_bp)
+
+        # Route pour servir les fichiers uploadés
+        from flask import send_from_directory
+
+        @app.route('/uploads/<path:filename>')
+        def uploaded_file(filename):
+            """Servir les fichiers uploadés"""
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'storage')
+            return send_from_directory(upload_folder, filename)
 
         # Context processors
         @app.context_processor

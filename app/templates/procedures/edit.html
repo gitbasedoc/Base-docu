@@ -2,6 +2,12 @@
 
 {% block title %}{{ 'Modifier' if procedure else 'Nouvelle' }} procédure - {{ app_name }}{% endblock %}
 
+{% block head %}
+{{ super() }}
+<!-- TinyMCE Editor -->
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
@@ -62,6 +68,23 @@
                   placeholder="Brève description de la procédure (optionnel)">{{ procedure.description if procedure else '' }}</textarea>
     </div>
 
+    <!-- Import de document -->
+    <div class="form-group">
+        <label class="form-label">
+            📄 Importer un document existant
+        </label>
+        <div class="import-section">
+            <input type="file" id="import-file" accept=".pdf,.doc,.docx" style="display: none;">
+            <button type="button" class="btn-secondary" onclick="document.getElementById('import-file').click()">
+                [Importer PDF/Word]
+            </button>
+            <span id="import-status" class="import-status"></span>
+        </div>
+        <div class="form-help">
+            💡 Importez un document PDF ou Word. Le contenu sera extrait et inséré dans l'éditeur en conservant la mise en forme.
+        </div>
+    </div>
+
     <!-- Contenu -->
     <div class="form-group">
         <label for="content" class="form-label">
@@ -71,11 +94,9 @@
                   name="content"
                   class="form-textarea form-textarea-large"
                   rows="20"
-                  placeholder="Rédigez la procédure ici... Vous pouvez utiliser du HTML ou Markdown."
                   required>{{ procedure.content if procedure else '' }}</textarea>
         <div class="form-help">
-            💡 Astuce : Utilisez des listes numérotées pour les étapes. Exemple:
-            <code>&lt;ol&gt;&lt;li&gt;Étape 1&lt;/li&gt;&lt;li&gt;Étape 2&lt;/li&gt;&lt;/ol&gt;</code>
+            💡 Éditeur complet : mise en forme, images par drag & drop, tableaux, listes, etc.
         </div>
     </div>
 
@@ -148,6 +169,181 @@
 </form>
 
 <script>
+// ===========================
+// TinyMCE Initialization
+// ===========================
+tinymce.init({
+    selector: '#content',
+    height: 600,
+    menubar: true,
+    plugins: [
+        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+        'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
+        'paste'
+    ],
+    toolbar: 'undo redo | blocks | bold italic underline strikethrough | ' +
+             'alignleft aligncenter alignright alignjustify | ' +
+             'bullist numlist outdent indent | ' +
+             'forecolor backcolor | ' +
+             'table link image media | ' +
+             'removeformat code fullscreen | help',
+
+    // Configuration des images
+    images_upload_url: '/files/upload-image',
+    images_upload_handler: async function (blobInfo, progress) {
+        const formData = new FormData();
+        formData.append('file', blobInfo.blob(), blobInfo.filename());
+
+        try {
+            const response = await fetch('/files/upload-image', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name="csrf_token"]').value
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                return data.location;
+            } else {
+                throw new Error(data.error || 'Erreur upload');
+            }
+        } catch (error) {
+            throw new Error('Erreur upload image: ' + error.message);
+        }
+    },
+
+    // Drag & drop d'images
+    paste_data_images: true,
+    automatic_uploads: true,
+    images_reuse_filename: true,
+
+    // Style
+    content_style: `
+        body {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e0e0e0;
+            background-color: #1a1a2e;
+            padding: 15px;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.75em;
+            color: #00ff88;
+        }
+        p {
+            margin-bottom: 1em;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+        }
+        table td, table th {
+            border: 1px solid #444;
+            padding: 8px;
+        }
+        table th {
+            background-color: #2a2a3e;
+            font-weight: 600;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        code {
+            background: #2a2a3e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Fira Code', monospace;
+        }
+        pre {
+            background: #2a2a3e;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    `,
+
+    // Thème sombre
+    skin: 'oxide-dark',
+    content_css: 'dark',
+
+    // Configuration du contenu
+    entity_encoding: 'raw',
+    valid_elements: '*[*]',
+    extended_valid_elements: '*[*]',
+
+    // Autres options
+    branding: false,
+    promotion: false,
+    resize: true,
+    statusbar: true,
+
+    // Callback après init
+    setup: function(editor) {
+        editor.on('init', function() {
+            console.log('TinyMCE initialisé avec succès');
+        });
+    }
+});
+
+// ===========================
+// Import de document PDF/Word
+// ===========================
+document.getElementById('import-file').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById('import-status');
+    statusEl.textContent = 'Import en cours...';
+    statusEl.style.color = '#ffa500';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/files/import-document', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name="csrf_token"]').value
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Insérer le contenu dans TinyMCE
+            tinymce.get('content').setContent(data.content);
+            statusEl.textContent = `✓ ${data.filename} importé avec succès`;
+            statusEl.style.color = '#00ff88';
+
+            setTimeout(() => {
+                statusEl.textContent = '';
+            }, 5000);
+        } else {
+            statusEl.textContent = `✗ Erreur: ${data.error}`;
+            statusEl.style.color = '#ff5252';
+        }
+    } catch (error) {
+        statusEl.textContent = `✗ Erreur: ${error.message}`;
+        statusEl.style.color = '#ff5252';
+    }
+
+    // Reset le input
+    e.target.value = '';
+});
+
+// ===========================
+// Fonctions Tags
+// ===========================
 function addTag() {
     const container = document.getElementById('tags-container');
     const tagGroup = document.createElement('div');
@@ -170,7 +366,7 @@ function removeTag(btn) {
 }
 
 async function generateTags() {
-    const content = document.getElementById('content').value;
+    const content = tinymce.get('content').getContent();
     const title = document.getElementById('title').value;
 
     if (!content || !title) {
@@ -218,7 +414,7 @@ async function generateTags() {
 }
 
 async function reformulateContent() {
-    const content = document.getElementById('content').value;
+    const content = tinymce.get('content').getContent();
 
     if (!content) {
         alert('Veuillez remplir le contenu avant de le reformuler.');
@@ -243,7 +439,7 @@ async function reformulateContent() {
 
         if (data.success && data.content) {
             if (confirm('Remplacer le contenu actuel par la version améliorée ?')) {
-                document.getElementById('content').value = data.content;
+                tinymce.get('content').setContent(data.content);
                 alert('Contenu reformulé avec succès !');
             }
         } else {
@@ -316,6 +512,18 @@ async function reformulateContent() {
     padding: 0.2rem 0.4rem;
     border-radius: 0.25rem;
     font-family: 'Fira Code', monospace;
+}
+
+.import-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.import-status {
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
 .tag-input-group {
