@@ -4,8 +4,8 @@
 
 {% block head %}
 {{ super() }}
-<!-- TinyMCE Editor - Community Version (no API key needed) -->
-<script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
+<!-- TinyMCE Editor - Self-hosted version -->
+<script src="{{ url_for('static', filename='js/tinymce/tinymce.min.js') }}"></script>
 {% endblock %}
 
 {% block content %}
