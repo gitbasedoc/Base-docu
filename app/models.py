@@ -160,6 +160,31 @@ class Procedure(db.Model):
         return f'<Procedure {self.id}: {self.title[:30]}...>'
 
 
+class Script(db.Model):
+    """Modèle Script - Espace collaboratif pour partager des scripts"""
+
+    __tablename__ = 'scripts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(500), nullable=False, index=True)
+    description = db.Column(db.Text)
+    content = db.Column(db.Text, nullable=False)
+    language = db.Column(db.String(50), nullable=False, index=True)  # PowerShell, Bash, Python, etc.
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_verified = db.Column(db.Boolean, default=False)
+    verification_notes = db.Column(db.Text)
+    ai_suggestions = db.Column(db.Text)  # Suggestions de l'IA stockées en JSON
+    status = db.Column(db.String(20), default='draft', index=True)  # draft, published, archived
+
+    # Relations
+    author = db.relationship('User', backref='scripts', foreign_keys=[author_id])
+
+    def __repr__(self):
+        return f'<Script {self.id}: {self.title[:30]}...>'
+
+
 class Tag(db.Model):
     """Modèle Tag"""
 

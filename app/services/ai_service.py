@@ -511,6 +511,148 @@ Retourne UNIQUEMENT le nombre, rien d'autre."""
         logger.info(f"Recherche sémantique: {len(top_results)} résultats trouvés")
         return top_results
 
+    @retry_on_error(max_retries=3, delay=2)
+    def review_code(
+            self,
+            code: str,
+            language: str,
+            title: str
+    ) -> Dict:
+        """
+        Révise un script et fournit des suggestions d'amélioration
+
+        Args:
+            code: Le code du script
+            language: Langage de programmation (PowerShell, Bash, Python, etc.)
+            title: Titre du script
+
+        Returns:
+            Dictionnaire avec les suggestions:
+            {
+                'security': [liste de suggestions de sécurité],
+                'performance': [liste de suggestions de performance],
+                'best_practices': [liste de bonnes pratiques],
+                'bugs': [liste de bugs potentiels],
+                'overall_score': score sur 100,
+                'summary': résumé général
+            }
+
+        Raises:
+            AIServiceError: En cas d'erreur API
+        """
+        logger.info(f"Révision de code {language} pour: {title[:50]}...")
+
+        prompt = f"""Tu es un expert en revue de code spécialisé en {language}.
+
+MISSION : Analyser ce script et fournir des suggestions d'amélioration détaillées.
+
+TITRE : {title}
+
+LANGAGE : {language}
+
+CODE :
+```{language.lower()}
+{code}
+```
+
+ANALYSE REQUISE :
+
+1. **SÉCURITÉ** :
+   - Vulnérabilités potentielles
+   - Injection de commandes
+   - Gestion des credentials
+   - Permissions et droits d'accès
+   - Path traversal
+   - Input validation
+
+2. **PERFORMANCE** :
+   - Optimisations possibles
+   - Utilisation mémoire
+   - Boucles inefficaces
+   - Appels réseau/IO
+
+3. **BONNES PRATIQUES** :
+   - Style de code
+   - Nommage des variables
+   - Commentaires et documentation
+   - Gestion d'erreurs
+   - Logging approprié
+   - Structure du code
+
+4. **BUGS POTENTIELS** :
+   - Erreurs logiques
+   - Edge cases non gérés
+   - Variables non initialisées
+   - Problèmes de typage
+   - Race conditions
+
+5. **SCORE GLOBAL** : Note sur 100
+
+6. **RÉSUMÉ** : Appréciation générale du code
+
+IMPORTANT :
+- Sois constructif et précis
+- Donne des exemples de correction quand pertinent
+- Si le code est bon, dis-le
+- Classe par ordre de priorité (critique → mineur)
+
+Retourne UNIQUEMENT un objet JSON au format :
+{{
+  "security": [
+    {{"issue": "Description du problème", "severity": "critical|high|medium|low", "suggestion": "Comment corriger"}}
+  ],
+  "performance": [
+    {{"issue": "Description", "impact": "high|medium|low", "suggestion": "Optimisation proposée"}}
+  ],
+  "best_practices": [
+    {{"practice": "Description", "priority": "high|medium|low", "suggestion": "Amélioration"}}
+  ],
+  "bugs": [
+    {{"bug": "Description", "severity": "critical|high|medium|low", "fix": "Comment corriger"}}
+  ],
+  "overall_score": 75,
+  "summary": "Le code est globalement correct mais..."
+}}
+
+Ne fournis AUCUNE explication en dehors du JSON."""
+
+        try:
+            response = self._call_claude(prompt, temperature=0.2, max_tokens=4096)
+
+            # Parser la réponse JSON
+            response = response.strip()
+
+            # Trouver le JSON dans la réponse
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+
+            if json_start == -1 or json_end == 0:
+                logger.error(f"Pas de JSON dans la réponse: {response}")
+                raise AIServiceError("Réponse invalide de l'API (pas de JSON)")
+
+            json_str = response[json_start:json_end]
+            data = json.loads(json_str)
+
+            # Validation basique
+            required_keys = ['security', 'performance', 'best_practices', 'bugs', 'overall_score', 'summary']
+            for key in required_keys:
+                if key not in data:
+                    logger.warning(f"Clé manquante dans la réponse: {key}")
+                    if key in ['security', 'performance', 'best_practices', 'bugs']:
+                        data[key] = []
+                    elif key == 'overall_score':
+                        data[key] = 50
+                    elif key == 'summary':
+                        data[key] = "Analyse incomplète"
+
+            logger.info(f"Révision de code terminée - Score: {data.get('overall_score', 'N/A')}")
+            return data
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Erreur parsing JSON: {e}")
+            logger.error(f"Réponse brute: {response}")
+            raise AIServiceError(f"Impossible de parser la réponse JSON: {e}") from e
+
     def _normalize_tag(self, tag: str) -> str:
         """
         Normalise un tag (minuscules, sans accents, etc.)

@@ -1,0 +1,527 @@
+{% extends "base.html" %}
+
+{% block title %}{{ script.title }}{% endblock %}
+
+{% block content %}
+<div class="script-header">
+    <div class="breadcrumb">
+        <a href="{{ url_for('scripts.list_scripts') }}">Scripts</a> &gt; {{ script.title }}
+    </div>
+
+    <div class="title-section">
+        <h1>{{ script.title }}</h1>
+        <div class="script-badges">
+            <span class="language-badge {{ script.language|lower }}">{{ script.language }}</span>
+            {% if script.is_verified %}
+            <span class="verified-badge" title="{{ script.verification_notes or 'Script vérifié' }}">✓ Vérifié</span>
+            {% endif %}
+            <span class="status-badge {{ script.status }}">{{ script.status }}</span>
+        </div>
+    </div>
+
+    <div class="meta-info">
+        <span>👤 Auteur : <strong>{{ script.author.full_name }}</strong></span>
+        <span>📅 Créé : {{ script.created_at.strftime('%d/%m/%Y à %H:%M') }}</span>
+        <span>🔄 Modifié : {{ script.updated_at.strftime('%d/%m/%Y à %H:%M') }}</span>
+    </div>
+</div>
+
+{% if script.description %}
+<div class="description-section">
+    <h2>📝 Description</h2>
+    <p>{{ script.description }}</p>
+</div>
+{% endif %}
+
+<div class="code-section">
+    <div class="code-header">
+        <h2>💻 Code</h2>
+        <div class="code-actions">
+            <button onclick="copyCode()" class="btn-copy" title="Copier le code">📋 Copier</button>
+            <button onclick="reviewCode()" class="btn-review" id="reviewBtn">🤖 Réviser avec l'IA</button>
+            {% if script.author_id == current_user.id or current_user.is_admin %}
+            <a href="{{ url_for('scripts.edit_script', script_id=script.id) }}" class="btn-edit">✏️ Modifier</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <pre><code id="codeBlock" class="language-{{ script.language|lower }}">{{ script.content }}</code></pre>
+</div>
+
+<!-- Section révision IA -->
+<div id="aiReviewSection" class="ai-review-section" style="display: none;">
+    <h2>🤖 Révision IA du Code</h2>
+    <div id="aiReviewContent"></div>
+</div>
+
+{% if script.ai_suggestions %}
+<div class="previous-review-section">
+    <h2>📊 Dernière Révision IA</h2>
+    <div id="previousReview"></div>
+</div>
+{% endif %}
+
+{% if current_user.is_admin and not script.is_verified %}
+<div class="admin-section">
+    <h2>⚙️ Actions Admin</h2>
+    <form method="POST" action="{{ url_for('scripts.verify_script', script_id=script.id) }}" class="verify-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <label>Notes de vérification :</label>
+        <textarea name="notes" rows="3" placeholder="Notes optionnelles..."></textarea>
+        <button type="submit" class="btn-verify">✓ Marquer comme vérifié</button>
+    </form>
+</div>
+{% endif %}
+
+<div class="danger-zone">
+    {% if script.author_id == current_user.id or current_user.is_admin %}
+    <h3>🗑️ Zone Danger</h3>
+    <form method="POST" action="{{ url_for('scripts.delete_script', script_id=script.id) }}"
+          onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce script ?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="btn-delete">Supprimer le script</button>
+    </form>
+    {% endif %}
+</div>
+
+<script>
+// Charger la révision précédente si elle existe
+{% if script.ai_suggestions %}
+document.addEventListener('DOMContentLoaded', function() {
+    const previousData = {{ script.ai_suggestions|safe }};
+    displayReview(previousData, 'previousReview');
+});
+{% endif %}
+
+function copyCode() {
+    const code = document.getElementById('codeBlock').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        alert('Code copié dans le presse-papiers !');
+    });
+}
+
+async function reviewCode() {
+    const btn = document.getElementById('reviewBtn');
+    const section = document.getElementById('aiReviewSection');
+    const content = document.getElementById('aiReviewContent');
+
+    // Désactiver le bouton
+    btn.disabled = true;
+    btn.textContent = '⏳ Révision en cours...';
+
+    // Afficher la section
+    section.style.display = 'block';
+    content.innerHTML = '<p class="loading">🔄 L\'IA analyse votre code...</p>';
+
+    try {
+        const response = await fetch('{{ url_for("scripts.review_script", script_id=script.id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            displayReview(data.suggestions, 'aiReviewContent');
+        } else {
+            content.innerHTML = `<p class="error">❌ Erreur : ${data.error}</p>`;
+        }
+    } catch (error) {
+        content.innerHTML = `<p class="error">❌ Erreur de connexion : ${error.message}</p>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🤖 Réviser avec l\'IA';
+    }
+}
+
+function displayReview(data, containerId) {
+    const container = document.getElementById(containerId);
+
+    let html = `
+        <div class="review-summary">
+            <div class="score-circle ${getScoreClass(data.overall_score)}">
+                <span class="score">${data.overall_score}</span>
+                <span class="score-label">/100</span>
+            </div>
+            <div class="summary-text">
+                <h3>Résumé</h3>
+                <p>${data.summary}</p>
+            </div>
+        </div>
+    `;
+
+    // Sécurité
+    if (data.security && data.security.length > 0) {
+        html += '<div class="review-category security">';
+        html += '<h3>🔒 Sécurité</h3>';
+        data.security.forEach(item => {
+            html += `
+                <div class="review-item ${item.severity}">
+                    <div class="item-header">
+                        <span class="severity-badge ${item.severity}">${item.severity}</span>
+                        <strong>${item.issue}</strong>
+                    </div>
+                    <p>${item.suggestion}</p>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+
+    // Performance
+    if (data.performance && data.performance.length > 0) {
+        html += '<div class="review-category performance">';
+        html += '<h3>⚡ Performance</h3>';
+        data.performance.forEach(item => {
+            html += `
+                <div class="review-item ${item.impact}">
+                    <div class="item-header">
+                        <span class="impact-badge ${item.impact}">${item.impact}</span>
+                        <strong>${item.issue}</strong>
+                    </div>
+                    <p>${item.suggestion}</p>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+
+    // Bonnes pratiques
+    if (data.best_practices && data.best_practices.length > 0) {
+        html += '<div class="review-category best-practices">';
+        html += '<h3>✅ Bonnes Pratiques</h3>';
+        data.best_practices.forEach(item => {
+            html += `
+                <div class="review-item ${item.priority}">
+                    <div class="item-header">
+                        <span class="priority-badge ${item.priority}">${item.priority}</span>
+                        <strong>${item.practice}</strong>
+                    </div>
+                    <p>${item.suggestion}</p>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+
+    // Bugs
+    if (data.bugs && data.bugs.length > 0) {
+        html += '<div class="review-category bugs">';
+        html += '<h3>🐛 Bugs Potentiels</h3>';
+        data.bugs.forEach(item => {
+            html += `
+                <div class="review-item ${item.severity}">
+                    <div class="item-header">
+                        <span class="severity-badge ${item.severity}">${item.severity}</span>
+                        <strong>${item.bug}</strong>
+                    </div>
+                    <p>${item.fix}</p>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+
+    container.innerHTML = html;
+}
+
+function getScoreClass(score) {
+    if (score >= 80) return 'excellent';
+    if (score >= 60) return 'good';
+    if (score >= 40) return 'average';
+    return 'poor';
+}
+</script>
+
+<style>
+.script-header {
+    margin-bottom: 30px;
+}
+
+.breadcrumb {
+    color: var(--text-secondary, #a0a0a0);
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.breadcrumb a {
+    color: var(--accent-color, #00ff88);
+    text-decoration: none;
+}
+
+.title-section {
+    margin-bottom: 20px;
+}
+
+.title-section h1 {
+    margin-bottom: 15px;
+}
+
+.script-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.language-badge {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.language-badge.powershell { background: #012456; color: #fff; }
+.language-badge.bash { background: #293137; color: #4EAA25; }
+.language-badge.python { background: #306998; color: #FFD43B; }
+
+.verified-badge {
+    background: #00ff88;
+    color: #1a1a2e;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-badge.published { background: #4caf50; color: #fff; }
+.status-badge.draft { background: #ff9800; color: #fff; }
+.status-badge.archived { background: #9e9e9e; color: #fff; }
+
+.meta-info {
+    display: flex;
+    gap: 30px;
+    color: var(--text-secondary, #a0a0a0);
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.description-section {
+    background: var(--card-bg, #16213e);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border-left: 4px solid var(--accent-color, #00ff88);
+}
+
+.code-section {
+    background: var(--card-bg, #16213e);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color, #2a3f5f);
+}
+
+.code-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-copy, .btn-review, .btn-edit {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #2a3f5f);
+    background: var(--bg-secondary, #0f1729);
+    color: var(--text-primary, #e0e0e0);
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.btn-copy:hover {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+    border-color: var(--accent-color, #00ff88);
+}
+
+.btn-review {
+    background: #7c4dff;
+    border-color: #7c4dff;
+    color: #fff;
+}
+
+.btn-review:hover:not(:disabled) {
+    background: #651fff;
+}
+
+.btn-review:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-edit {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+    border-color: var(--accent-color, #00ff88);
+}
+
+pre {
+    margin: 0;
+    padding: 20px;
+    background: var(--bg-primary, #1a1a2e);
+    overflow-x: auto;
+}
+
+code {
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #e0e0e0;
+}
+
+.ai-review-section, .previous-review-section {
+    background: var(--card-bg, #16213e);
+    padding: 30px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.review-summary {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--bg-secondary, #0f1729);
+    border-radius: 8px;
+}
+
+.score-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.score-circle.excellent { background: #4caf50; }
+.score-circle.good { background: #2196f3; }
+.score-circle.average { background: #ff9800; }
+.score-circle.poor { background: #f44336; }
+
+.score {
+    font-size: 2.5rem;
+    color: #fff;
+}
+
+.score-label {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.review-category {
+    margin: 30px 0;
+}
+
+.review-item {
+    background: var(--bg-secondary, #0f1729);
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.review-item.critical { border-left-color: #f44336; }
+.review-item.high { border-left-color: #ff9800; }
+.review-item.medium { border-left-color: #2196f3; }
+.review-item.low { border-left-color: #4caf50; }
+
+.item-header {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.severity-badge, .impact-badge, .priority-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.severity-badge.critical, .impact-badge.high, .priority-badge.high { background: #f44336; }
+.severity-badge.high, .priority-badge.medium { background: #ff9800; }
+.severity-badge.medium, .impact-badge.medium { background: #2196f3; }
+.severity-badge.low, .impact-badge.low, .priority-badge.low { background: #4caf50; }
+
+.admin-section {
+    background: var(--card-bg, #16213e);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.verify-form textarea {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-secondary, #0f1729);
+    color: var(--text-primary, #e0e0e0);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    margin: 10px 0;
+}
+
+.btn-verify {
+    background: #00ff88;
+    color: #1a1a2e;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.danger-zone {
+    background: rgba(244, 67, 54, 0.1);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #f44336;
+}
+
+.btn-delete {
+    background: #f44336;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.error {
+    color: #f44336;
+    padding: 20px;
+    text-align: center;
+}
+</style>
+{% endblock %}
