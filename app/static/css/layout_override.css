@@ -3,11 +3,17 @@
  * Styles pour le nouveau layout sans sidebar
  */
 
-/* Container sans sidebar - Centré */
+/* Container sans sidebar - Centré (compatible tous navigateurs) */
 .container {
     width: 100%;
+    display: -ms-flexbox; /* IE10 */
+    display: -webkit-flex; /* Safari */
     display: flex;
+    -ms-flex-pack: center; /* IE10 */
+    -webkit-justify-content: center; /* Safari */
     justify-content: center;
+    -ms-flex-align: start; /* IE10 */
+    -webkit-align-items: flex-start; /* Safari */
     align-items: flex-start;
 }
 
@@ -27,14 +33,16 @@
 }
 
 .page-title {
-    margin: 0;
+    margin: 0 auto;
+    display: block;
 }
 
-/* Header - Section gauche avec lien home et infos user */
+/* Header - Section gauche avec lien home et infos user - Espacement amélioré */
 .header-left {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
+    gap: 30px; /* Augmenté de var(--space-lg) à 30px */
+    flex-shrink: 0;
 }
 
 /* Lien home */
@@ -70,22 +78,28 @@
     letter-spacing: 0.05em;
 }
 
-/* Header - Section utilisateur à gauche */
+/* Header - Section utilisateur à gauche - Espacement amélioré */
 .user-info-section {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px; /* Augmenté de 2px à 4px */
+    padding: 8px 12px;
+    background: rgba(55, 65, 81, 0.3);
+    border-radius: 6px;
+    border: 1px solid rgba(75, 85, 99, 0.5);
 }
 
 .user-info-section .user-name {
     font-size: var(--text-sm);
     color: var(--text-primary);
     font-weight: 600;
+    line-height: 1.4;
 }
 
 .user-info-section .user-email {
     font-size: var(--text-xs);
     color: var(--text-secondary);
+    line-height: 1.4;
 }
 
 /* Header - Bouton Administration */

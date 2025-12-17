@@ -98,10 +98,17 @@ def create_app(config_name=None):
         # Context processors
         @app.context_processor
         def inject_app_info():
+            from app.models import Setting
+
+            # Récupérer les paramètres depuis la base de données avec fallback sur config
+            app_name = Setting.get('app_name', app.config.get('APP_NAME', 'KB Support Basedoc'))
+            company_name = Setting.get('company_name', app.config.get('COMPANY_NAME', 'Support IT'))
+            version = Setting.get('version', app.config.get('VERSION', '1.0.0'))
+
             return {
-                'app_name': app.config.get('APP_NAME', 'KB Support Basedoc'),
-                'company_name': app.config.get('COMPANY_NAME', 'Support IT'),
-                'version': app.config.get('VERSION', '1.0.0')
+                'app_name': app_name,
+                'company_name': company_name,
+                'version': version
             }
 
         # Error handlers
