@@ -28,6 +28,10 @@
     {% if current_user.is_authenticated %}
     <header class="header">
         <div class="header-left">
+            <a href="{{ url_for('procedures.home') }}" class="home-link">
+                <span class="home-icon">🏠</span>
+                <span class="home-text">HOME</span>
+            </a>
             <div class="user-info-section">
                 <div class="user-name">{{ current_user.full_name }}</div>
                 <div class="user-email">{{ current_user.email }}</div>

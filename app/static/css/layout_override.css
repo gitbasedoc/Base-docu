@@ -11,6 +11,46 @@
     padding: var(--space-xl);
 }
 
+/* Header - Section gauche avec lien home et infos user */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+}
+
+/* Lien home */
+.home-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 8px 16px;
+    background: var(--bg-cards);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    border: 1px solid transparent;
+}
+
+.home-link:hover {
+    background: var(--accent-cyan);
+    color: var(--bg-primary);
+    border-color: var(--accent-cyan);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+}
+
+.home-icon {
+    font-size: var(--text-lg);
+}
+
+.home-text {
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
 /* Header - Section utilisateur à gauche */
 .user-info-section {
     display: flex;
