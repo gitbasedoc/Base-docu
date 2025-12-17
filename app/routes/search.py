@@ -4,8 +4,9 @@ Routes pour la recherche
 
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
-from sqlalchemy import or_
+from sqlalchemy import or_, func, text
 
+from app import db
 from app.models import Procedure, Tag
 
 search_bp = Blueprint('search', __name__)
@@ -24,21 +25,48 @@ def search():
     if not query or len(query) < 3:
         return render_template('search.html', procedures=None, query=query, error='Requête trop courte (min 3 caractères)')
 
-    # Recherche simple (texte)
-    search_pattern = f'%{query}%'
+    # PostgreSQL Full-Text Search avec ranking
+    try:
+        # Convertir la query en tsquery (français)
+        search_query = ' & '.join([word for word in query.split() if len(word) >= 2])
 
-    procedures = Procedure.query.filter(
-        Procedure.is_archived == False,
-        or_(
-            Procedure.title.ilike(search_pattern),
-            Procedure.content.ilike(search_pattern),
-            Procedure.description.ilike(search_pattern)
+        # Requête avec ts_rank pour le scoring
+        procedures = db.session.query(
+            Procedure,
+            func.ts_rank(
+                Procedure.search_vector,
+                func.to_tsquery('french', search_query)
+            ).label('rank')
+        ).filter(
+            Procedure.is_archived == False,
+            Procedure.search_vector.op('@@')(func.to_tsquery('french', search_query))
+        ).order_by(
+            text('rank DESC'),
+            Procedure.updated_at.desc()
+        ).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
         )
-    ).order_by(Procedure.updated_at.desc()).paginate(
-        page=page,
-        per_page=per_page,
-        error_out=False
-    )
+
+        # Extraire les procédures du résultat (tuple avec rank)
+        procedures.items = [item[0] for item in procedures.items]
+
+    except Exception as e:
+        # Fallback sur recherche ILIKE si erreur (ex: search_vector pas encore créé)
+        search_pattern = f'%{query}%'
+        procedures = Procedure.query.filter(
+            Procedure.is_archived == False,
+            or_(
+                Procedure.title.ilike(search_pattern),
+                Procedure.content.ilike(search_pattern),
+                Procedure.description.ilike(search_pattern)
+            )
+        ).order_by(Procedure.updated_at.desc()).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
 
     return render_template('search.html', procedures=procedures, query=query)
 
@@ -60,13 +88,32 @@ def search_suggestions():
     if not query or len(query) < 3:
         return jsonify([])
 
-    search_pattern = f'%{query}%'
+    try:
+        # Essayer avec PostgreSQL FTS d'abord (plus rapide et pertinent)
+        search_query = ' & '.join([word for word in query.split() if len(word) >= 2])
 
-    # Rechercher dans les titres uniquement pour suggestions rapides
-    procedures = Procedure.query.filter(
-        Procedure.is_archived == False,
-        Procedure.title.ilike(search_pattern)
-    ).order_by(Procedure.updated_at.desc()).limit(10).all()
+        results = db.session.query(
+            Procedure,
+            func.ts_rank(
+                Procedure.search_vector,
+                func.to_tsquery('french', search_query)
+            ).label('rank')
+        ).filter(
+            Procedure.is_archived == False,
+            Procedure.search_vector.op('@@')(func.to_tsquery('french', search_query))
+        ).order_by(
+            text('rank DESC')
+        ).limit(10).all()
+
+        procedures = [item[0] for item in results]
+
+    except:
+        # Fallback sur recherche ILIKE
+        search_pattern = f'%{query}%'
+        procedures = Procedure.query.filter(
+            Procedure.is_archived == False,
+            Procedure.title.ilike(search_pattern)
+        ).order_by(Procedure.updated_at.desc()).limit(10).all()
 
     suggestions = [
         {

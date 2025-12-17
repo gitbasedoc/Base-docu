@@ -123,6 +123,7 @@ class Procedure(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_archived = db.Column(db.Boolean, default=False, index=True)
     useful_count = db.Column(db.Integer, default=0)  # Compteur de votes "utile"
+    search_vector = db.Column(db.Text)  # TSVector pour recherche plein texte PostgreSQL
 
     # Relations
     tags = db.relationship('Tag', secondary=procedure_tags, backref=db.backref('procedures', lazy='dynamic'))
