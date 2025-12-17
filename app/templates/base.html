@@ -52,7 +52,6 @@
         </div>
 
         <div class="header-right">
-            <a href="{{ url_for('procedures.new_procedure') }}" class="btn-new">[+ Nouvelle procédure]</a>
             {% if current_user.is_admin %}
             <a href="/admin" class="btn-admin">[⚙️ Administration]</a>
             {% endif %}
