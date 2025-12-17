@@ -185,6 +185,38 @@ class Script(db.Model):
         return f'<Script {self.id}: {self.title[:30]}...>'
 
 
+class FAQ(db.Model):
+    """Modèle FAQ - Questions Fréquemment Posées"""
+
+    __tablename__ = 'faqs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.String(500), nullable=False, index=True)
+    answer = db.Column(db.Text, nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False, index=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_published = db.Column(db.Boolean, default=True, index=True)
+    view_count = db.Column(db.Integer, default=0)
+    helpful_count = db.Column(db.Integer, default=0)
+
+    # Relations
+    category = db.relationship('Category', backref='faqs')
+    author = db.relationship('User', backref='faqs', foreign_keys=[created_by])
+
+    def increment_view(self):
+        """Incrémente le compteur de vues"""
+        self.view_count += 1
+
+    def increment_helpful(self):
+        """Incrémente le compteur 'utile'"""
+        self.helpful_count += 1
+
+    def __repr__(self):
+        return f'<FAQ {self.id}: {self.question[:30]}...>'
+
+
 class Tag(db.Model):
     """Modèle Tag"""
 

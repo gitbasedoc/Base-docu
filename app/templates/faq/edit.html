@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifier' if faq else 'Nouvelle' }} FAQ{% endblock %}
+
+{% block head %}
+{{ super() }}
+<!-- TinyMCE Editor - Self-hosted version -->
+<script src="{{ url_for('static', filename='js/tinymce/tinymce.min.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="breadcrumb">
+        <a href="{{ url_for('faq.list_faqs') }}">FAQ</a> &gt;
+        {% if faq %}
+        <a href="{{ url_for('faq.view_faq', faq_id=faq.id) }}">{{ faq.question[:50] }}...</a> &gt; Modifier
+        {% else %}
+        Nouvelle
+        {% endif %}
+    </div>
+    <h1>{% if faq %}✏️ Modifier la FAQ{% else %}➕ Nouvelle FAQ{% endif %}</h1>
+</div>
+
+<form method="POST" class="faq-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    <div class="form-group">
+        <label for="question" class="form-label">Question *</label>
+        <input
+            type="text"
+            id="question"
+            name="question"
+            class="form-input"
+            value="{{ faq.question if faq else '' }}"
+            required
+            placeholder="Ex: Comment réinitialiser mon mot de passe ?"
+            autofocus
+        >
+        <div class="form-help">
+            💡 Formulez la question de manière claire et concise
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="category_id" class="form-label">Catégorie *</label>
+        <select id="category_id" name="category_id" class="form-select" required>
+            <option value="">Choisir une catégorie...</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if faq and faq.category_id == category.id %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Import de document -->
+    <div class="form-group">
+        <label class="form-label">
+            📄 Importer un document existant
+        </label>
+        <div class="import-section">
+            <input type="file" id="import-file" accept=".pdf,.doc,.docx" style="display: none;">
+            <button type="button" class="btn-secondary" onclick="document.getElementById('import-file').click()">
+                [Importer PDF/Word]
+            </button>
+            <span id="import-status" class="import-status"></span>
+        </div>
+        <div class="form-help">
+            💡 Importez un document PDF ou Word. Le contenu sera extrait et inséré dans l'éditeur.
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="answer" class="form-label">Réponse *</label>
+        <textarea
+            id="answer"
+            name="answer"
+            class="form-textarea"
+            required
+        >{{ faq.answer if faq else '' }}</textarea>
+        <div class="form-help">
+            💡 Rédigez une réponse détaillée et complète. Utilisez l'éditeur pour formater le texte, ajouter des images, tableaux, etc.
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="checkbox-label">
+            <input
+                type="checkbox"
+                name="is_published"
+                {% if not faq or faq.is_published %}checked{% endif %}
+            >
+            <span>Publier immédiatement</span>
+        </label>
+        <div class="form-help">
+            💡 Si non coché, la FAQ sera enregistrée comme brouillon
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-primary">
+            {% if faq %}💾 Enregistrer les modifications{% else %}➕ Créer la FAQ{% endif %}
+        </button>
+        <a href="{{ url_for('faq.list_faqs') }}" class="btn-secondary">Annuler</a>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Vérifier que TinyMCE est chargé
+    if (typeof tinymce === 'undefined') {
+        console.error('TinyMCE n\'est pas chargé !');
+        alert('Erreur : L\'éditeur de texte n\'a pas pu se charger. Rechargez la page.');
+        return;
+    }
+
+    // Initialiser TinyMCE
+    tinymce.init({
+        selector: '#answer',
+        height: 600,
+        menubar: true,
+        plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'media', 'table', 'help', 'wordcount'
+        ],
+        toolbar: 'undo redo | blocks | ' +
+            'bold italic forecolor backcolor | alignleft aligncenter ' +
+            'alignright alignjustify | bullist numlist outdent indent | ' +
+            'removeformat | image media table | code fullscreen | help',
+        content_style: `
+            body {
+                font-family: 'Inter', Arial, sans-serif;
+                font-size: 14px;
+                background-color: #1a1a2e;
+                color: #e0e0e0;
+            }
+            code {
+                background-color: #0f1729;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-family: 'Fira Code', monospace;
+            }
+            pre {
+                background-color: #0f1729;
+                padding: 15px;
+                border-radius: 6px;
+                border-left: 4px solid #00ff88;
+            }
+        `,
+        skin: 'oxide-dark',
+        content_css: 'dark',
+        images_upload_url: '{{ url_for("files.upload_image") }}',
+        images_upload_handler: async function (blobInfo, progress) {
+            const formData = new FormData();
+            formData.append('image', blobInfo.blob(), blobInfo.filename());
+            formData.append('csrf_token', '{{ csrf_token() }}');
+
+            try {
+                const response = await fetch('{{ url_for("files.upload_image") }}', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    return data.url;
+                } else {
+                    throw new Error(data.error || 'Upload failed');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                throw error;
+            }
+        },
+        paste_data_images: true,
+        automatic_uploads: true,
+        file_picker_types: 'image',
+        branding: false,
+        promotion: false,
+        language: 'fr_FR'
+    });
+
+    // Gestion de l'import de documents
+    const importFile = document.getElementById('import-file');
+    const importStatus = document.getElementById('import-status');
+
+    importFile.addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        importStatus.textContent = '⏳ Import en cours...';
+        importStatus.className = 'import-status loading';
+
+        const formData = new FormData();
+        formData.append('document', file);
+        formData.append('csrf_token', '{{ csrf_token() }}');
+
+        try {
+            const response = await fetch('{{ url_for("files.import_document") }}', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Insérer le contenu dans TinyMCE
+                const editor = tinymce.get('answer');
+                if (editor) {
+                    const currentContent = editor.getContent();
+                    editor.setContent(currentContent + data.content);
+                }
+
+                importStatus.textContent = '✓ Document importé avec succès !';
+                importStatus.className = 'import-status success';
+
+                setTimeout(() => {
+                    importStatus.textContent = '';
+                }, 3000);
+            } else {
+                importStatus.textContent = '✗ Erreur : ' + (data.error || 'Import échoué');
+                importStatus.className = 'import-status error';
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            importStatus.textContent = '✗ Erreur de connexion';
+            importStatus.className = 'import-status error';
+        }
+
+        // Réinitialiser l'input
+        importFile.value = '';
+    });
+});
+</script>
+
+<style>
+.faq-form {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-primary, #e0e0e0);
+    font-weight: 500;
+}
+
+.form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--bg-secondary, #0f1729);
+    color: var(--text-primary, #e0e0e0);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--accent-color, #00ff88);
+}
+
+.form-help {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.import-section {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.import-status {
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.import-status.loading {
+    color: #2196f3;
+}
+
+.import-status.success {
+    color: #4caf50;
+}
+
+.import-status.error {
+    color: #f44336;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 1px solid var(--border-color, #2a3f5f);
+}
+
+.btn-primary, .btn-secondary {
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+
+.btn-primary:hover {
+    background: #00dd77;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-primary, #e0e0e0);
+    border: 1px solid var(--border-color, #2a3f5f);
+    display: inline-block;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-secondary, #0f1729);
+    border-color: var(--accent-color, #00ff88);
+}
+
+.breadcrumb {
+    color: var(--text-secondary, #a0a0a0);
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.breadcrumb a {
+    color: var(--accent-color, #00ff88);
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}

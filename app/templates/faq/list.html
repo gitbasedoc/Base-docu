@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}FAQ - Questions Fréquemment Posées{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>❓ Questions Fréquemment Posées (FAQ)</h1>
+    <p class="subtitle">Trouvez rapidement des réponses aux questions courantes</p>
+</div>
+
+<div class="actions-bar">
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('faq.new_faq') }}" class="btn-primary">
+        + Nouvelle FAQ
+    </a>
+    {% endif %}
+
+    <div class="filters">
+        <select id="category-filter" class="filter-select" onchange="filterFAQs()">
+            <option value="">Toutes les catégories</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if category.id == current_category %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+            {% endfor %}
+        </select>
+
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        <label class="checkbox-filter">
+            <input type="checkbox" id="show-all" {% if show_all %}checked{% endif %} onchange="filterFAQs()">
+            <span>Afficher les brouillons</span>
+        </label>
+        {% endif %}
+    </div>
+</div>
+
+{% if faqs.items %}
+<div class="faq-list">
+    {% for faq in faqs.items %}
+    <div class="faq-card">
+        <div class="faq-header">
+            <div class="faq-category" style="border-color: {{ faq.category.color_code if faq.category.color_code else '#00ff88' }}">
+                {{ faq.category.short_name }}
+            </div>
+            {% if not faq.is_published %}
+            <span class="badge-draft">Brouillon</span>
+            {% endif %}
+        </div>
+
+        <h3 class="faq-question">
+            <a href="{{ url_for('faq.view_faq', faq_id=faq.id) }}">
+                {{ faq.question }}
+            </a>
+        </h3>
+
+        <div class="faq-preview">
+            {{ faq.answer|striptags|truncate(150) }}
+        </div>
+
+        <div class="faq-meta">
+            <span class="views">👁️ {{ faq.view_count }} vues</span>
+            <span class="helpful">👍 {{ faq.helpful_count }} utile</span>
+            <span class="date">📅 {{ faq.updated_at.strftime('%d/%m/%Y') }}</span>
+        </div>
+
+        <div class="faq-actions">
+            <a href="{{ url_for('faq.view_faq', faq_id=faq.id) }}" class="btn-view">Lire la réponse</a>
+            {% if current_user.is_authenticated and (faq.created_by == current_user.id or current_user.is_admin) %}
+            <a href="{{ url_for('faq.edit_faq', faq_id=faq.id) }}" class="btn-edit">Modifier</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if faqs.pages > 1 %}
+<div class="pagination">
+    {% if faqs.has_prev %}
+    <a href="?page={{ faqs.prev_num }}&category={{ current_category or '' }}&show_all={{ show_all }}" class="page-btn">← Précédent</a>
+    {% endif %}
+
+    <span class="page-info">Page {{ faqs.page }} sur {{ faqs.pages }}</span>
+
+    {% if faqs.has_next %}
+    <a href="?page={{ faqs.next_num }}&category={{ current_category or '' }}&show_all={{ show_all }}" class="page-btn">Suivant →</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">❓</div>
+    <h2>Aucune FAQ trouvée</h2>
+    <p>{% if current_user.is_authenticated %}Commencez par créer votre première FAQ !{% else %}Il n'y a pas encore de questions fréquentes.{% endif %}</p>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('faq.new_faq') }}" class="btn-primary">+ Créer une FAQ</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+function filterFAQs() {
+    const category = document.getElementById('category-filter').value;
+    const showAll = document.getElementById('show-all') ? document.getElementById('show-all').checked : false;
+
+    const params = new URLSearchParams();
+    if (category) params.append('category', category);
+    if (showAll) params.append('show_all', 'true');
+
+    window.location.href = '{{ url_for("faq.list_faqs") }}?' + params.toString();
+}
+</script>
+
+<style>
+.faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.faq-card {
+    background: var(--card-bg, #16213e);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.faq-card:hover {
+    transform: translateX(5px);
+    border-left: 4px solid var(--accent-color, #00ff88);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.1);
+}
+
+.faq-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.faq-category {
+    display: inline-block;
+    padding: 4px 12px;
+    border-left: 4px solid;
+    background: var(--bg-secondary, #0f1729);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Fira Code', monospace;
+}
+
+.badge-draft {
+    background: #ff9800;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.faq-question {
+    margin: 15px 0;
+    font-size: 1.3rem;
+    line-height: 1.4;
+}
+
+.faq-question a {
+    color: var(--text-primary, #e0e0e0);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.faq-question a:hover {
+    color: var(--accent-color, #00ff88);
+}
+
+.faq-preview {
+    color: var(--text-secondary, #a0a0a0);
+    font-size: 0.95rem;
+    margin: 15px 0;
+    line-height: 1.6;
+}
+
+.faq-meta {
+    display: flex;
+    gap: 20px;
+    margin: 15px 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #a0a0a0);
+    flex-wrap: wrap;
+}
+
+.faq-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color, #2a3f5f);
+}
+
+.btn-view, .btn-edit {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.btn-view {
+    background: var(--bg-secondary, #0f1729);
+    color: var(--accent-color, #00ff88);
+    border: 1px solid var(--accent-color, #00ff88);
+}
+
+.btn-view:hover {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+
+.btn-edit {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+    border: 1px solid var(--accent-color, #00ff88);
+}
+
+.btn-edit:hover {
+    background: transparent;
+    color: var(--accent-color, #00ff88);
+}
+
+.actions-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filters {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    background: var(--bg-secondary, #0f1729);
+    color: var(--text-primary, #e0e0e0);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+}
+
+.checkbox-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary, #e0e0e0);
+    cursor: pointer;
+}
+
+.checkbox-filter input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin: 40px 0 20px 0;
+}
+
+.page-btn {
+    padding: 8px 16px;
+    background: var(--bg-secondary, #0f1729);
+    color: var(--accent-color, #00ff88);
+    border: 1px solid var(--accent-color, #00ff88);
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.page-btn:hover {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+
+.page-info {
+    color: var(--text-secondary, #a0a0a0);
+    font-size: 0.9rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.empty-state h2 {
+    color: var(--text-primary, #e0e0e0);
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: var(--text-secondary, #a0a0a0);
+    margin-bottom: 30px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}{{ faq.question }}{% endblock %}
+
+{% block content %}
+<div class="faq-header">
+    <div class="breadcrumb">
+        <a href="{{ url_for('faq.list_faqs') }}">FAQ</a> &gt; {{ faq.question[:50] }}{% if faq.question|length > 50 %}...{% endif %}
+    </div>
+
+    <div class="title-section">
+        <div class="question-badge">
+            <span class="badge-icon">❓</span>
+            <h1>{{ faq.question }}</h1>
+        </div>
+
+        <div class="faq-badges">
+            <span class="category-badge" style="border-color: {{ faq.category.color_code if faq.category.color_code else '#00ff88' }}">
+                {{ faq.category.name }}
+            </span>
+            {% if not faq.is_published %}
+            <span class="status-badge draft">Brouillon</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="meta-info">
+        <span>👤 Auteur : <strong>{{ faq.author.full_name if faq.author else 'Système' }}</strong></span>
+        <span>📅 Créé : {{ faq.created_at.strftime('%d/%m/%Y à %H:%M') }}</span>
+        <span>🔄 Modifié : {{ faq.updated_at.strftime('%d/%m/%Y à %H:%M') }}</span>
+        <span>👁️ Vues : <strong>{{ faq.view_count }}</strong></span>
+    </div>
+</div>
+
+<div class="answer-section">
+    <h2>💡 Réponse</h2>
+    <div class="answer-content">
+        {{ faq.answer|safe }}
+    </div>
+</div>
+
+<div class="helpful-section">
+    <p>Cette réponse vous a-t-elle été utile ?</p>
+    <button onclick="markHelpful()" class="btn-helpful" id="helpfulBtn">
+        👍 Oui, c'est utile (<span id="helpfulCount">{{ faq.helpful_count }}</span>)
+    </button>
+</div>
+
+{% if current_user.is_authenticated and (faq.created_by == current_user.id or current_user.is_admin) %}
+<div class="admin-actions">
+    <h3>⚙️ Actions</h3>
+    <div class="action-buttons">
+        <a href="{{ url_for('faq.edit_faq', faq_id=faq.id) }}" class="btn-edit">✏️ Modifier</a>
+        <form method="POST" action="{{ url_for('faq.delete_faq', faq_id=faq.id) }}"
+              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette FAQ ?')" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn-delete">🗑️ Supprimer</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="navigation-links">
+    <a href="{{ url_for('faq.list_faqs') }}" class="btn-back">← Retour à la liste FAQ</a>
+</div>
+
+<script>
+let helpfulClicked = false;
+
+async function markHelpful() {
+    if (helpfulClicked) {
+        alert('Vous avez déjà marqué cette FAQ comme utile !');
+        return;
+    }
+
+    const btn = document.getElementById('helpfulBtn');
+    const count = document.getElementById('helpfulCount');
+
+    try {
+        const response = await fetch('{{ url_for("faq.mark_helpful", faq_id=faq.id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            count.textContent = data.helpful_count;
+            btn.classList.add('marked');
+            btn.disabled = true;
+            helpfulClicked = true;
+
+            // Animation
+            btn.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                btn.style.transform = 'scale(1)';
+            }, 200);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+}
+</script>
+
+<style>
+.faq-header {
+    margin-bottom: 30px;
+}
+
+.breadcrumb {
+    color: var(--text-secondary, #a0a0a0);
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.breadcrumb a {
+    color: var(--accent-color, #00ff88);
+    text-decoration: none;
+}
+
+.question-badge {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.badge-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.question-badge h1 {
+    flex: 1;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.faq-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.category-badge {
+    padding: 6px 12px;
+    border-left: 4px solid;
+    background: var(--bg-secondary, #0f1729);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-badge.draft {
+    background: #ff9800;
+    color: #fff;
+}
+
+.meta-info {
+    display: flex;
+    gap: 30px;
+    color: var(--text-secondary, #a0a0a0);
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.answer-section {
+    background: var(--card-bg, #16213e);
+    padding: 30px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border-left: 4px solid var(--accent-color, #00ff88);
+}
+
+.answer-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: var(--accent-color, #00ff88);
+}
+
+.answer-content {
+    line-height: 1.8;
+    font-size: 1.05rem;
+}
+
+.answer-content h1, .answer-content h2, .answer-content h3 {
+    color: var(--text-primary, #e0e0e0);
+    margin-top: 25px;
+    margin-bottom: 15px;
+}
+
+.answer-content p {
+    margin-bottom: 15px;
+}
+
+.answer-content ul, .answer-content ol {
+    margin-left: 25px;
+    margin-bottom: 15px;
+}
+
+.answer-content code {
+    background: var(--bg-primary, #1a1a2e);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9em;
+}
+
+.answer-content pre {
+    background: var(--bg-primary, #1a1a2e);
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 20px 0;
+}
+
+.answer-content pre code {
+    background: none;
+    padding: 0;
+}
+
+.helpful-section {
+    background: var(--card-bg, #16213e);
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.helpful-section p {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
+
+.btn-helpful {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+    border: none;
+    padding: 12px 30px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-helpful:hover:not(:disabled) {
+    background: #00dd77;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+}
+
+.btn-helpful.marked, .btn-helpful:disabled {
+    background: #4caf50;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+.admin-actions {
+    background: var(--card-bg, #16213e);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-edit, .btn-delete {
+    padding: 10px 20px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-edit {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+
+.btn-edit:hover {
+    background: #00dd77;
+}
+
+.btn-delete {
+    background: #f44336;
+    color: #fff;
+}
+
+.btn-delete:hover {
+    background: #d32f2f;
+}
+
+.navigation-links {
+    margin-top: 30px;
+}
+
+.btn-back {
+    display: inline-block;
+    padding: 10px 20px;
+    background: var(--bg-secondary, #0f1729);
+    color: var(--accent-color, #00ff88);
+    border: 1px solid var(--accent-color, #00ff88);
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+</style>
+{% endblock %}
