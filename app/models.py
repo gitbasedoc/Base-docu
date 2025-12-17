@@ -122,6 +122,7 @@ class Procedure(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_archived = db.Column(db.Boolean, default=False, index=True)
+    useful_count = db.Column(db.Integer, default=0)  # Compteur de votes "utile"
 
     # Relations
     tags = db.relationship('Tag', secondary=procedure_tags, backref=db.backref('procedures', lazy='dynamic'))
@@ -155,6 +156,10 @@ class Procedure(db.Model):
         )
 
         db.session.add(version)
+
+    def increment_useful(self):
+        """Incrémente le compteur 'utile'"""
+        self.useful_count += 1
 
     def __repr__(self):
         return f'<Procedure {self.id}: {self.title[:30]}...>'

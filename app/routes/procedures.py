@@ -275,3 +275,22 @@ def delete_procedure(procedure_id):
 
     flash('Procédure supprimée définitivement', 'success')
     return redirect(url_for('procedures.list_procedures'))
+
+
+@procedures_bp.route('/procedures/<int:procedure_id>/useful', methods=['POST'])
+def mark_useful(procedure_id):
+    """
+    Marquer une procédure comme utile (AJAX)
+    """
+    from flask import jsonify
+
+    procedure = Procedure.query.get_or_404(procedure_id)
+
+    # Incrémenter le compteur
+    procedure.increment_useful()
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'useful_count': procedure.useful_count
+    })

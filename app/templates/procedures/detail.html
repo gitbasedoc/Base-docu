@@ -45,6 +45,11 @@
             <span class="metadata-value">{{ procedure.estimated_time }} minutes</span>
         </div>
         {% endif %}
+
+        <div class="metadata-item">
+            <span class="metadata-label">Utile</span>
+            <span class="metadata-value">👍 <strong id="usefulCountTop">{{ procedure.useful_count }}</strong></span>
+        </div>
     </div>
 
     {% if procedure.tags %}
@@ -123,6 +128,22 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Évaluation Utilité -->
+<div class="section">
+    <h3 class="section-title">💡 Cette procédure vous est-elle utile ?</h3>
+    <div class="useful-section">
+        <button id="btnUseful" class="btn-useful" onclick="markUseful()">
+            <span class="useful-icon">👍</span>
+            <span class="useful-text">Oui, c'est utile</span>
+            <span class="useful-count">(<span id="usefulCount">{{ procedure.useful_count }}</span>)</span>
+        </button>
+        <div id="usefulFeedback" class="useful-feedback" style="display: none;">
+            <span class="feedback-icon">✓</span>
+            <span class="feedback-text">Merci pour votre retour !</span>
+        </div>
+    </div>
+</div>
 
 <!-- Actions -->
 <div class="section">
@@ -278,5 +299,155 @@
     gap: 0.5rem;
     flex-wrap: wrap;
 }
+
+/* Section Utilité */
+.useful-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+.btn-useful {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: var(--accent-green);
+    color: var(--bg-primary);
+    border: 2px solid var(--accent-green);
+    border-radius: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-mono);
+}
+
+.btn-useful:hover {
+    background: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+.btn-useful:disabled {
+    background: var(--bg-cards);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.useful-icon {
+    font-size: 1.5rem;
+}
+
+.useful-text {
+    font-weight: 700;
+}
+
+.useful-count {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.btn-useful:hover .useful-count {
+    color: var(--text-primary);
+}
+
+.useful-feedback {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid var(--accent-green);
+    border-radius: 0.5rem;
+    color: var(--accent-green);
+    font-weight: 600;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.feedback-icon {
+    font-size: 1.5rem;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 </style>
+
+<script>
+async function markUseful() {
+    const procedureId = {{ procedure.id }};
+    const btn = document.getElementById('btnUseful');
+    const countElement = document.getElementById('usefulCount');
+    const countTopElement = document.getElementById('usefulCountTop');
+    const feedback = document.getElementById('usefulFeedback');
+
+    // Vérifier si déjà voté
+    const storageKey = `procedure_${procedureId}_voted`;
+    if (localStorage.getItem(storageKey)) {
+        alert('Vous avez déjà marqué cette procédure comme utile !');
+        return;
+    }
+
+    try {
+        btn.disabled = true;
+
+        const response = await fetch(`/procedures/${procedureId}/useful`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Mettre à jour les compteurs
+            countElement.textContent = data.useful_count;
+            countTopElement.textContent = data.useful_count;
+
+            // Afficher le feedback
+            btn.style.display = 'none';
+            feedback.style.display = 'flex';
+
+            // Sauvegarder le vote
+            localStorage.setItem(storageKey, 'true');
+
+            // Animation
+            feedback.style.animation = 'fadeIn 0.3s ease-in';
+        }
+    } catch (error) {
+        console.error('Erreur lors du vote:', error);
+        alert('Erreur lors de l\'enregistrement de votre vote');
+        btn.disabled = false;
+    }
+}
+
+// Vérifier si déjà voté au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    const procedureId = {{ procedure.id }};
+    const storageKey = `procedure_${procedureId}_voted`;
+
+    if (localStorage.getItem(storageKey)) {
+        const btn = document.getElementById('btnUseful');
+        const feedback = document.getElementById('usefulFeedback');
+        btn.style.display = 'none';
+        feedback.style.display = 'flex';
+    }
+});
+</script>
 {% endblock %}
