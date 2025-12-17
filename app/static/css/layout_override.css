@@ -1,0 +1,112 @@
+/**
+ * Layout Override - Suppression de la sidebar
+ * Styles pour le nouveau layout sans sidebar
+ */
+
+/* Container sans sidebar */
+.content {
+    margin-left: 0 !important;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--space-xl);
+}
+
+/* Header - Section utilisateur à gauche */
+.user-info-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.user-info-section .user-name {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.user-info-section .user-email {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+
+/* Header - Bouton Administration */
+.btn-admin {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 8px 16px;
+    background: var(--accent-purple);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.btn-admin:hover {
+    background: var(--accent-cyan);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+}
+
+/* Ajustement des boutons du header */
+.header-right {
+    display: flex;
+    gap: var(--space-md);
+    align-items: center;
+}
+
+.btn-new {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--accent-green);
+    color: var(--bg-primary);
+    border-radius: 4px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.btn-new:hover {
+    background: var(--accent-cyan);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+}
+
+/* Page header sans actions (home page) */
+.page-header {
+    margin-bottom: var(--space-xl);
+}
+
+/* Navigation cards - Centrage et largeur max */
+.quick-nav-grid {
+    max-width: 1200px;
+    margin: 0 auto var(--space-xl) auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header {
+        flex-wrap: wrap;
+        height: auto;
+        min-height: var(--header-height);
+    }
+
+    .header-left,
+    .header-center,
+    .header-right {
+        flex: 1 1 100%;
+        padding: var(--space-sm) 0;
+    }
+
+    .user-info-section {
+        align-items: center;
+    }
+
+    .header-right {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}

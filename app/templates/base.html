@@ -11,6 +11,7 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dark_theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout_override.css') }}">
     {% block extra_css %}{% endblock %}
 
     <!-- Fonts -->
@@ -27,7 +28,10 @@
     {% if current_user.is_authenticated %}
     <header class="header">
         <div class="header-left">
-            <h1 class="app-title">&gt; KB_SUPPORT_BASEDOC <span class="version">v{{ version }}</span></h1>
+            <div class="user-info-section">
+                <div class="user-name">{{ current_user.full_name }}</div>
+                <div class="user-email">{{ current_user.email }}</div>
+            </div>
         </div>
 
         <div class="header-center">
@@ -44,10 +48,9 @@
         </div>
 
         <div class="header-right">
-            <a href="{{ url_for('scripts.new_script') }}" class="btn-new">[+ NEW SCRIPT]</a>
-            <span class="user-info">{{ current_user.full_name }}</span>
+            <a href="{{ url_for('procedures.new_procedure') }}" class="btn-new">[+ Nouvelle procédure]</a>
             {% if current_user.is_admin %}
-            <span class="badge-admin">[ADMIN]</span>
+            <a href="/admin" class="btn-admin">[⚙️ Administration]</a>
             {% endif %}
             <a href="{{ url_for('auth.logout') }}" class="btn-secondary btn-logout">[LOGOUT]</a>
         </div>
@@ -73,80 +76,6 @@
 
     <!-- Main container -->
     <div class="container">
-        {% if current_user.is_authenticated %}
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <nav class="sidebar-nav">
-                <ul class="nav-list">
-                    <li class="nav-item">
-                        <a href="{{ url_for('procedures.home') }}" class="nav-link {% if request.endpoint == 'procedures.home' %}active{% endif %}">
-                            <span class="nav-icon">🏠</span>
-                            <span class="nav-text">Home</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a href="{{ url_for('scripts.list_scripts') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('scripts.') %}active{% endif %}">
-                            <span class="nav-icon">📜</span>
-                            <span class="nav-text">Scripts</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a href="{{ url_for('faq.list_faqs') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('faq.') %}active{% endif %}">
-                            <span class="nav-icon">❓</span>
-                            <span class="nav-text">FAQ</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a href="{{ url_for('software.list_software') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('software.') %}active{% endif %}">
-                            <span class="nav-icon">💻</span>
-                            <span class="nav-text">Logiciels</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-section">
-                        <div class="nav-section-title">
-                            <span class="nav-icon">📁</span>
-                            <span class="nav-text">Categories</span>
-                        </div>
-                        <ul class="nav-sub-list">
-                            <!-- Catégories seront injectées ici -->
-                            <li><a href="{{ url_for('procedures.list_procedures', category=1) }}" class="nav-sub-link">Office 365</a></li>
-                            <li><a href="{{ url_for('procedures.list_procedures', category=2) }}" class="nav-sub-link">Matériel</a></li>
-                            <li><a href="{{ url_for('procedures.list_procedures', category=3) }}" class="nav-sub-link">Réseau</a></li>
-                            <li><a href="{{ url_for('procedures.list_procedures', category=4) }}" class="nav-sub-link">Comptes</a></li>
-                            <li><a href="{{ url_for('procedures.list_procedures', category=5) }}" class="nav-sub-link">Logiciels</a></li>
-                            <li><a href="{{ url_for('procedures.list_procedures', category=6) }}" class="nav-sub-link">Système</a></li>
-                        </ul>
-                    </li>
-
-                    {% if current_user.is_admin %}
-                    <li class="nav-divider"></li>
-
-                    <li class="nav-item">
-                        <a href="/admin" class="nav-link">
-                            <span class="nav-icon">⚙️</span>
-                            <span class="nav-text">Admin</span>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="sidebar-user">
-                    <div class="user-avatar">{{ current_user.full_name[0] }}</div>
-                    <div class="user-details">
-                        <div class="user-name">{{ current_user.full_name }}</div>
-                        <div class="user-email">{{ current_user.email }}</div>
-                    </div>
-                </div>
-            </div>
-        </aside>
-        {% endif %}
-
         <!-- Main content -->
         <main class="content">
             {% block content %}{% endblock %}
