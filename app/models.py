@@ -512,3 +512,39 @@ class ActionLog(db.Model):
 
     def __repr__(self):
         return f'<ActionLog {self.action_type} {self.entity_type} #{self.entity_id}>'
+
+
+class Comment(db.Model):
+    """Modèle Commentaire - Discussions sous les procédures"""
+
+    __tablename__ = 'comments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    procedure_id = db.Column(db.Integer, db.ForeignKey('procedures.id', ondelete='CASCADE'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    parent_id = db.Column(db.Integer, db.ForeignKey('comments.id', ondelete='CASCADE'), nullable=True, index=True)  # Pour les réponses
+    content = db.Column(db.Text, nullable=False)
+    is_edited = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations
+    procedure = db.relationship('Procedure', backref=db.backref('comments', lazy='dynamic', cascade='all, delete-orphan'))
+    user = db.relationship('User', backref='comments', foreign_keys=[user_id])
+    parent = db.relationship('Comment', remote_side=[id], backref=db.backref('replies', lazy='dynamic'))
+
+    # Index composite
+    __table_args__ = (
+        db.Index('idx_procedure_created', 'procedure_id', 'created_at'),
+    )
+
+    def get_replies_count(self):
+        """Retourne le nombre de réponses"""
+        return self.replies.count()
+
+    def is_reply(self):
+        """Vérifie si c'est une réponse à un autre commentaire"""
+        return self.parent_id is not None
+
+    def __repr__(self):
+        return f'<Comment #{self.id} on Procedure #{self.procedure_id}>'

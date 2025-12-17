@@ -7,7 +7,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 
 from app import db
-from app.models import Procedure, Category, Tag, ActionLog
+from app.models import Procedure, Category, Tag, ActionLog, Comment
 from app.services.file_service import FileService
 
 procedures_bp = Blueprint('procedures', __name__)
@@ -95,10 +95,17 @@ def view_procedure(procedure_id):
     # Récupérer les versions
     versions = procedure.versions.limit(10).all()
 
+    # Récupérer les commentaires (seulement les commentaires parents, pas les réponses)
+    comments = Comment.query.filter_by(
+        procedure_id=procedure.id,
+        parent_id=None
+    ).order_by(Comment.created_at.desc()).all()
+
     return render_template(
         'procedures/detail.html',
         procedure=procedure,
-        versions=versions
+        versions=versions,
+        comments=comments
     )
 
 
@@ -361,3 +368,126 @@ def mark_useful(procedure_id):
         'success': True,
         'useful_count': procedure.useful_count
     })
+
+
+@procedures_bp.route('/procedures/<int:procedure_id>/comments', methods=['POST'])
+@login_required
+def add_comment(procedure_id):
+    """
+    Ajouter un commentaire à une procédure
+    """
+    from flask import jsonify
+
+    procedure = Procedure.query.get_or_404(procedure_id)
+    content = request.form.get('content', '').strip()
+    parent_id = request.form.get('parent_id', type=int)
+
+    if not content:
+        return jsonify({'success': False, 'error': 'Le commentaire ne peut pas être vide'}), 400
+
+    comment = Comment(
+        procedure_id=procedure.id,
+        user_id=current_user.id,
+        parent_id=parent_id,
+        content=content
+    )
+
+    db.session.add(comment)
+
+    # Audit log
+    ActionLog.log_action(
+        action_type='comment',
+        entity_type='procedure',
+        entity_id=procedure.id,
+        entity_name=procedure.title,
+        details=json.dumps({'comment_id': comment.id, 'is_reply': parent_id is not None}),
+        user_id=current_user.id,
+        request_obj=request
+    )
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'comment': {
+            'id': comment.id,
+            'content': comment.content,
+            'user_name': current_user.full_name,
+            'created_at': comment.created_at.strftime('%d/%m/%Y %H:%M'),
+            'parent_id': comment.parent_id
+        }
+    })
+
+
+@procedures_bp.route('/procedures/<int:procedure_id>/comments/<int:comment_id>/edit', methods=['POST'])
+@login_required
+def edit_comment(procedure_id, comment_id):
+    """
+    Modifier un commentaire
+    """
+    from flask import jsonify
+
+    comment = Comment.query.get_or_404(comment_id)
+
+    # Vérifier que l'utilisateur est l'auteur ou admin
+    if comment.user_id != current_user.id and not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+
+    content = request.form.get('content', '').strip()
+
+    if not content:
+        return jsonify({'success': False, 'error': 'Le commentaire ne peut pas être vide'}), 400
+
+    comment.content = content
+    comment.is_edited = True
+
+    # Audit log
+    ActionLog.log_action(
+        action_type='update',
+        entity_type='comment',
+        entity_id=comment.id,
+        entity_name=f'Comment on {comment.procedure.title}',
+        user_id=current_user.id,
+        request_obj=request
+    )
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'comment': {
+            'id': comment.id,
+            'content': comment.content,
+            'is_edited': True
+        }
+    })
+
+
+@procedures_bp.route('/procedures/<int:procedure_id>/comments/<int:comment_id>/delete', methods=['POST'])
+@login_required
+def delete_comment(procedure_id, comment_id):
+    """
+    Supprimer un commentaire
+    """
+    from flask import jsonify
+
+    comment = Comment.query.get_or_404(comment_id)
+
+    # Vérifier que l'utilisateur est l'auteur ou admin
+    if comment.user_id != current_user.id and not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+
+    # Audit log (avant suppression)
+    ActionLog.log_action(
+        action_type='delete',
+        entity_type='comment',
+        entity_id=comment.id,
+        entity_name=f'Comment on {comment.procedure.title}',
+        user_id=current_user.id,
+        request_obj=request
+    )
+
+    db.session.delete(comment)
+    db.session.commit()
+
+    return jsonify({'success': True})
