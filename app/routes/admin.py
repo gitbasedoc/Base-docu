@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 from functools import wraps
 
 from app import db
-from app.models import User, Category, Setting
+from app.models import User, Category, Setting, ActionLog, Procedure
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -225,3 +225,56 @@ def update_settings():
     db.session.commit()
     flash('Paramètres mis à jour', 'success')
     return redirect(url_for('admin.settings'))
+
+
+@admin_bp.route('/audit-logs')
+@login_required
+@admin_required
+def audit_logs():
+    """
+    Afficher l'historique d'audit
+    """
+    # Filtres
+    action_type = request.args.get('action_type')
+    entity_type = request.args.get('entity_type')
+    user_id = request.args.get('user_id', type=int)
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+
+    # Construire la requête
+    query = ActionLog.query
+
+    if action_type:
+        query = query.filter_by(action_type=action_type)
+    if entity_type:
+        query = query.filter_by(entity_type=entity_type)
+    if user_id:
+        query = query.filter_by(user_id=user_id)
+
+    # Paginer
+    pagination = query.order_by(ActionLog.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    logs = pagination.items
+
+    # Stats pour le dashboard
+    total_logs = ActionLog.query.count()
+    recent_actions = ActionLog.query.order_by(ActionLog.created_at.desc()).limit(10).all()
+
+    # Actions par type
+    from sqlalchemy import func
+    actions_by_type = db.session.query(
+        ActionLog.action_type,
+        func.count(ActionLog.id).label('count')
+    ).group_by(ActionLog.action_type).all()
+
+    return render_template('admin/audit_logs.html',
+                         logs=logs,
+                         pagination=pagination,
+                         total_logs=total_logs,
+                         recent_actions=recent_actions,
+                         actions_by_type=actions_by_type,
+                         action_type_filter=action_type,
+                         entity_type_filter=entity_type,
+                         user_id_filter=user_id)

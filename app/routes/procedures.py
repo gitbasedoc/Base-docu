@@ -2,11 +2,12 @@
 Routes pour les procédures
 """
 
+import json
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 
 from app import db
-from app.models import Procedure, Category, Tag
+from app.models import Procedure, Category, Tag, ActionLog
 from app.services.file_service import FileService
 
 procedures_bp = Blueprint('procedures', __name__)
@@ -152,6 +153,17 @@ def new_procedure():
         # Créer la première version
         procedure.create_version(current_user.id)
 
+        # Audit log
+        ActionLog.log_action(
+            action_type='create',
+            entity_type='procedure',
+            entity_id=procedure.id,
+            entity_name=procedure.title,
+            details=json.dumps({'category_id': category_id, 'tags': tags_input}),
+            user_id=current_user.id,
+            request_obj=request
+        )
+
         db.session.commit()
 
         flash('Procédure créée avec succès', 'success')
@@ -209,6 +221,17 @@ def edit_procedure(procedure_id):
                 procedure.tags.append(tag)
                 tag.increment_usage()
 
+        # Audit log
+        ActionLog.log_action(
+            action_type='update',
+            entity_type='procedure',
+            entity_id=procedure.id,
+            entity_name=procedure.title,
+            details=json.dumps({'category_id': category_id, 'tags': tags_input}),
+            user_id=current_user.id,
+            request_obj=request
+        )
+
         db.session.commit()
 
         flash('Procédure mise à jour avec succès', 'success')
@@ -228,6 +251,17 @@ def archive_procedure(procedure_id):
     procedure = Procedure.query.get_or_404(procedure_id)
 
     procedure.is_archived = True
+
+    # Audit log
+    ActionLog.log_action(
+        action_type='archive',
+        entity_type='procedure',
+        entity_id=procedure.id,
+        entity_name=procedure.title,
+        user_id=current_user.id,
+        request_obj=request
+    )
+
     db.session.commit()
 
     flash('Procédure archivée', 'success')
@@ -243,6 +277,17 @@ def restore_procedure(procedure_id):
     procedure = Procedure.query.get_or_404(procedure_id)
 
     procedure.is_archived = False
+
+    # Audit log
+    ActionLog.log_action(
+        action_type='restore',
+        entity_type='procedure',
+        entity_id=procedure.id,
+        entity_name=procedure.title,
+        user_id=current_user.id,
+        request_obj=request
+    )
+
     db.session.commit()
 
     flash('Procédure restaurée', 'success')
@@ -259,6 +304,7 @@ def delete_procedure(procedure_id):
         abort(403)
 
     procedure = Procedure.query.get_or_404(procedure_id)
+    procedure_title = procedure.title  # Sauvegarder avant suppression
 
     # Supprimer les fichiers associés
     file_service = FileService()
@@ -268,6 +314,16 @@ def delete_procedure(procedure_id):
     # Décrémenter usage_count des tags
     for tag in procedure.tags:
         tag.decrement_usage()
+
+    # Audit log (avant suppression pour avoir l'ID)
+    ActionLog.log_action(
+        action_type='delete',
+        entity_type='procedure',
+        entity_id=procedure.id,
+        entity_name=procedure_title,
+        user_id=current_user.id,
+        request_obj=request
+    )
 
     # Supprimer la procédure (cascade supprimera attachments et versions)
     db.session.delete(procedure)
@@ -288,6 +344,17 @@ def mark_useful(procedure_id):
 
     # Incrémenter le compteur
     procedure.increment_useful()
+
+    # Audit log (optionnel pour les votes, mais utile pour tracking)
+    ActionLog.log_action(
+        action_type='useful',
+        entity_type='procedure',
+        entity_id=procedure.id,
+        entity_name=procedure.title,
+        user_id=current_user.id if current_user.is_authenticated else None,
+        request_obj=request
+    )
+
     db.session.commit()
 
     return jsonify({

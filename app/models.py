@@ -403,3 +403,112 @@ class Setting(db.Model):
 
     def __repr__(self):
         return f'<Setting {self.key}={self.value}>'
+
+
+class ActionLog(db.Model):
+    """Modèle Audit Log - Historique des actions"""
+
+    __tablename__ = 'action_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    action_type = db.Column(db.String(50), nullable=False, index=True)  # create, update, delete, archive, restore
+    entity_type = db.Column(db.String(50), nullable=False, index=True)  # procedure, script, faq, software, user, category
+    entity_id = db.Column(db.Integer, nullable=False, index=True)
+    entity_name = db.Column(db.String(500))  # Nom de l'entité pour faciliter la lecture
+    details = db.Column(db.Text)  # JSON avec détails de la modification
+    ip_address = db.Column(db.String(50))
+    user_agent = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    # Relations
+    user = db.relationship('User', backref='action_logs', foreign_keys=[user_id])
+
+    # Index composite pour les requêtes fréquentes
+    __table_args__ = (
+        db.Index('idx_entity_lookup', 'entity_type', 'entity_id'),
+        db.Index('idx_user_action', 'user_id', 'action_type'),
+        db.Index('idx_date_action', 'created_at', 'action_type'),
+    )
+
+    @classmethod
+    def log_action(cls, action_type, entity_type, entity_id, entity_name=None, details=None, user_id=None, request_obj=None):
+        """
+        Enregistre une action dans le log
+
+        Args:
+            action_type: Type d'action (create, update, delete, etc.)
+            entity_type: Type d'entité (procedure, script, etc.)
+            entity_id: ID de l'entité
+            entity_name: Nom de l'entité (optionnel)
+            details: Détails supplémentaires en JSON (optionnel)
+            user_id: ID de l'utilisateur (optionnel)
+            request_obj: Objet Flask request pour IP et user agent (optionnel)
+
+        Returns:
+            Instance ActionLog créée
+        """
+        log_entry = cls(
+            user_id=user_id,
+            action_type=action_type,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            entity_name=entity_name,
+            details=details
+        )
+
+        if request_obj:
+            log_entry.ip_address = request_obj.remote_addr
+            log_entry.user_agent = request_obj.headers.get('User-Agent', '')[:500]
+
+        db.session.add(log_entry)
+        # Note: db.session.commit() doit être appelé par l'appelant
+
+        return log_entry
+
+    def get_action_icon(self):
+        """Retourne une icône pour le type d'action"""
+        icons = {
+            'create': '➕',
+            'update': '✏️',
+            'delete': '🗑️',
+            'archive': '📦',
+            'restore': '♻️',
+            'login': '🔐',
+            'logout': '🚪',
+            'useful': '👍',
+            'comment': '💬'
+        }
+        return icons.get(self.action_type, '📝')
+
+    def get_action_label(self):
+        """Retourne un label lisible pour le type d'action"""
+        labels = {
+            'create': 'Création',
+            'update': 'Modification',
+            'delete': 'Suppression',
+            'archive': 'Archivage',
+            'restore': 'Restauration',
+            'login': 'Connexion',
+            'logout': 'Déconnexion',
+            'useful': 'Vote utile',
+            'comment': 'Commentaire'
+        }
+        return labels.get(self.action_type, self.action_type)
+
+    def get_entity_label(self):
+        """Retourne un label lisible pour le type d'entité"""
+        labels = {
+            'procedure': 'Procédure',
+            'script': 'Script',
+            'faq': 'FAQ',
+            'software': 'Logiciel',
+            'user': 'Utilisateur',
+            'category': 'Catégorie',
+            'comment': 'Commentaire',
+            'tag': 'Tag'
+        }
+        return labels.get(self.entity_type, self.entity_type)
+
+    def __repr__(self):
+        return f'<ActionLog {self.action_type} {self.entity_type} #{self.entity_id}>'
