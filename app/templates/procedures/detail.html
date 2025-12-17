@@ -242,6 +242,8 @@
     <div class="procedure-actions-footer">
         <a href="{{ url_for('procedures.list_procedures') }}" class="btn-secondary">[← Retour à la liste]</a>
         <a href="{{ url_for('procedures.edit_procedure', procedure_id=procedure.id) }}" class="btn-primary">[Modifier]</a>
+        <a href="{{ url_for('procedures.export_pdf', procedure_id=procedure.id) }}" class="btn-export btn-export-pdf" target="_blank">[📕 Export PDF]</a>
+        <a href="{{ url_for('procedures.export_docx', procedure_id=procedure.id) }}" class="btn-export btn-export-docx">[📘 Export DOCX]</a>
         {% if not procedure.is_archived %}
         <form method="POST" action="{{ url_for('procedures.archive_procedure', procedure_id=procedure.id) }}" style="display: inline;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -390,6 +392,44 @@
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+}
+
+.btn-export {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-family: 'Fira Code', monospace;
+}
+
+.btn-export-pdf {
+    background: var(--accent-red);
+    color: var(--text-primary);
+    border: 2px solid var(--accent-red);
+}
+
+.btn-export-pdf:hover {
+    background: transparent;
+    color: var(--accent-red);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-export-docx {
+    background: #2563eb;
+    color: var(--text-primary);
+    border: 2px solid #2563eb;
+}
+
+.btn-export-docx:hover {
+    background: transparent;
+    color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 /* Section Utilité */

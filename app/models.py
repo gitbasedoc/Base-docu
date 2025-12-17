@@ -477,7 +477,8 @@ class ActionLog(db.Model):
             'login': '🔐',
             'logout': '🚪',
             'useful': '👍',
-            'comment': '💬'
+            'comment': '💬',
+            'export': '📥'
         }
         return icons.get(self.action_type, '📝')
 
@@ -492,7 +493,8 @@ class ActionLog(db.Model):
             'login': 'Connexion',
             'logout': 'Déconnexion',
             'useful': 'Vote utile',
-            'comment': 'Commentaire'
+            'comment': 'Commentaire',
+            'export': 'Export'
         }
         return labels.get(self.action_type, self.action_type)
 

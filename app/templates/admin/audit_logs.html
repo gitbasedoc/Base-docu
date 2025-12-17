@@ -35,6 +35,8 @@
                 <option value="archive" {% if action_type_filter == 'archive' %}selected{% endif %}>Archivage</option>
                 <option value="restore" {% if action_type_filter == 'restore' %}selected{% endif %}>Restauration</option>
                 <option value="useful" {% if action_type_filter == 'useful' %}selected{% endif %}>Vote utile</option>
+                <option value="comment" {% if action_type_filter == 'comment' %}selected{% endif %}>Commentaire</option>
+                <option value="export" {% if action_type_filter == 'export' %}selected{% endif %}>Export</option>
             </select>
         </div>
 
@@ -266,6 +268,8 @@
 .action-archive { background: rgba(251, 146, 60, 0.2); color: #fb923c; }
 .action-restore { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
 .action-useful { background: rgba(6, 182, 212, 0.2); color: var(--accent-cyan); }
+.action-comment { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+.action-export { background: rgba(249, 115, 22, 0.2); color: #f97316; }
 
 .log-entity-name a {
     color: var(--accent-cyan);

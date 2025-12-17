@@ -9,6 +9,7 @@ from flask_login import login_required, current_user
 from app import db
 from app.models import Procedure, Category, Tag, ActionLog, Comment
 from app.services.file_service import FileService
+from app.services.export_service import ExportService
 
 procedures_bp = Blueprint('procedures', __name__)
 
@@ -491,3 +492,95 @@ def delete_comment(procedure_id, comment_id):
     db.session.commit()
 
     return jsonify({'success': True})
+
+
+@procedures_bp.route('/procedures/<int:procedure_id>/export/pdf')
+@login_required
+def export_pdf(procedure_id):
+    """
+    Exporter une procédure en PDF
+    """
+    from flask import send_file
+    import re
+
+    procedure = Procedure.query.get_or_404(procedure_id)
+
+    try:
+        # Générer le PDF
+        pdf_file = ExportService.generate_pdf(procedure)
+
+        # Nettoyer le nom du fichier
+        filename = re.sub(r'[^\w\s-]', '', procedure.title)
+        filename = re.sub(r'[-\s]+', '-', filename)
+        filename = f'{filename}-{procedure.id}.pdf'
+
+        # Audit log
+        ActionLog.log_action(
+            action_type='export',
+            entity_type='procedure',
+            entity_id=procedure.id,
+            entity_name=procedure.title,
+            details=json.dumps({'format': 'pdf'}),
+            user_id=current_user.id,
+            request_obj=request
+        )
+        db.session.commit()
+
+        return send_file(
+            pdf_file,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+    except ImportError as e:
+        flash(f'Erreur: {str(e)}', 'error')
+        return redirect(url_for('procedures.view_procedure', procedure_id=procedure_id))
+    except Exception as e:
+        flash(f'Erreur lors de la génération du PDF: {str(e)}', 'error')
+        return redirect(url_for('procedures.view_procedure', procedure_id=procedure_id))
+
+
+@procedures_bp.route('/procedures/<int:procedure_id>/export/docx')
+@login_required
+def export_docx(procedure_id):
+    """
+    Exporter une procédure en DOCX
+    """
+    from flask import send_file
+    import re
+
+    procedure = Procedure.query.get_or_404(procedure_id)
+
+    try:
+        # Générer le DOCX
+        docx_file = ExportService.generate_docx(procedure)
+
+        # Nettoyer le nom du fichier
+        filename = re.sub(r'[^\w\s-]', '', procedure.title)
+        filename = re.sub(r'[-\s]+', '-', filename)
+        filename = f'{filename}-{procedure.id}.docx'
+
+        # Audit log
+        ActionLog.log_action(
+            action_type='export',
+            entity_type='procedure',
+            entity_id=procedure.id,
+            entity_name=procedure.title,
+            details=json.dumps({'format': 'docx'}),
+            user_id=current_user.id,
+            request_obj=request
+        )
+        db.session.commit()
+
+        return send_file(
+            docx_file,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            as_attachment=True,
+            download_name=filename
+        )
+    except ImportError as e:
+        flash(f'Erreur: {str(e)}', 'error')
+        return redirect(url_for('procedures.view_procedure', procedure_id=procedure_id))
+    except Exception as e:
+        flash(f'Erreur lors de la génération du DOCX: {str(e)}', 'error')
+        return redirect(url_for('procedures.view_procedure', procedure_id=procedure_id))
