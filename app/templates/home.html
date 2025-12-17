@@ -9,37 +9,48 @@
 
 <!-- Navigation rapide -->
 <div class="quick-nav-grid">
-    <a href="{{ url_for('procedures.list_procedures') }}" class="nav-card">
+    <div class="nav-card" data-section="procedures" onclick="loadSection('procedures')">
         <div class="nav-icon">📚</div>
         <div class="nav-content">
             <div class="nav-title">Procédures</div>
             <div class="nav-desc">{{ stats.total_procedures }} procédures disponibles</div>
         </div>
-    </a>
+    </div>
 
-    <a href="{{ url_for('scripts.list_scripts') }}" class="nav-card">
+    <div class="nav-card" data-section="scripts" onclick="loadSection('scripts')">
         <div class="nav-icon">📜</div>
         <div class="nav-content">
             <div class="nav-title">Scripts</div>
             <div class="nav-desc">Bibliothèque de scripts</div>
         </div>
-    </a>
+    </div>
 
-    <a href="{{ url_for('faq.list_faqs') }}" class="nav-card">
+    <div class="nav-card" data-section="faq" onclick="loadSection('faq')">
         <div class="nav-icon">❓</div>
         <div class="nav-content">
             <div class="nav-title">FAQ</div>
             <div class="nav-desc">Questions fréquentes</div>
         </div>
-    </a>
+    </div>
 
-    <a href="{{ url_for('software.list_software') }}" class="nav-card nav-card-highlight">
+    <div class="nav-card nav-card-highlight" data-section="software" onclick="loadSection('software')">
         <div class="nav-icon">💻</div>
         <div class="nav-content">
             <div class="nav-title">Logiciels</div>
             <div class="nav-desc">Outils et logiciels utiles</div>
         </div>
-    </a>
+    </div>
+</div>
+
+<!-- Section de contenu dynamique -->
+<div id="dynamic-content" class="dynamic-content-section" style="display: none;">
+    <div class="content-header">
+        <h3 id="content-title" class="content-section-title"></h3>
+        <button onclick="closeContent()" class="btn-close-content">[✕ Fermer]</button>
+    </div>
+    <div id="content-body" class="content-body">
+        <div class="loading">Chargement...</div>
+    </div>
 </div>
 {% endblock %}
 
@@ -60,7 +71,7 @@
     background: var(--card-bg, #16213e);
     border: 2px solid var(--border-color, #2a3f5f);
     border-radius: 8px;
-    text-decoration: none;
+    cursor: pointer;
     transition: all 0.3s ease;
 }
 
@@ -68,6 +79,11 @@
     border-color: var(--accent-color, #00ff88);
     transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(0, 255, 136, 0.15);
+}
+
+.nav-card.active {
+    border-color: var(--accent-cyan, #06b6d4);
+    background: rgba(6, 182, 212, 0.1);
 }
 
 .nav-card-highlight {
@@ -96,10 +112,266 @@
     color: var(--text-secondary, #a0a0a0);
 }
 
+/* Section de contenu dynamique */
+.dynamic-content-section {
+    margin-top: 30px;
+    background: var(--bg-secondary, #0f1729);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 8px;
+    padding: 20px;
+    max-height: 60vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--accent-cyan, #06b6d4);
+}
+
+.content-section-title {
+    font-size: 1.5rem;
+    color: var(--accent-cyan, #06b6d4);
+    margin: 0;
+}
+
+.btn-close-content {
+    background: transparent;
+    color: var(--text-secondary, #a0a0a0);
+    border: 1px solid var(--border-color, #2a3f5f);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.btn-close-content:hover {
+    background: var(--accent-red, #ef4444);
+    color: var(--text-primary, #f9fafb);
+    border-color: var(--accent-red, #ef4444);
+}
+
+.content-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary, #a0a0a0);
+    font-size: 1.1rem;
+}
+
+/* Items de contenu */
+.content-item {
+    background: var(--bg-cards, #374151);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.content-item:hover {
+    border-color: var(--accent-cyan, #06b6d4);
+    transform: translateX(5px);
+}
+
+.content-item-title {
+    font-size: 1.1rem;
+    color: var(--accent-cyan, #06b6d4);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.content-item-title a {
+    color: var(--accent-cyan, #06b6d4);
+    text-decoration: none;
+}
+
+.content-item-title a:hover {
+    text-decoration: underline;
+}
+
+.content-item-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #a0a0a0);
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.content-item-description {
+    margin-top: 10px;
+    color: var(--text-primary, #f9fafb);
+    line-height: 1.6;
+}
+
+/* Scrollbar personnalisée */
+.content-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.content-body::-webkit-scrollbar-track {
+    background: var(--bg-primary, #1f2937);
+    border-radius: 4px;
+}
+
+.content-body::-webkit-scrollbar-thumb {
+    background: var(--bg-cards, #374151);
+    border-radius: 4px;
+}
+
+.content-body::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-cyan, #06b6d4);
+}
+
 @media (max-width: 768px) {
     .quick-nav-grid {
         grid-template-columns: 1fr;
     }
+
+    .dynamic-content-section {
+        max-height: 70vh;
+    }
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentSection = null;
+
+async function loadSection(section) {
+    // Marquer la carte comme active
+    document.querySelectorAll('.nav-card').forEach(card => {
+        card.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+
+    currentSection = section;
+
+    // Afficher la section de contenu
+    const dynamicContent = document.getElementById('dynamic-content');
+    const contentTitle = document.getElementById('content-title');
+    const contentBody = document.getElementById('content-body');
+
+    dynamicContent.style.display = 'flex';
+    contentBody.innerHTML = '<div class="loading">Chargement...</div>';
+
+    // Définir le titre
+    const titles = {
+        'procedures': '📚 Procédures',
+        'scripts': '📜 Scripts',
+        'faq': '❓ FAQ',
+        'software': '💻 Logiciels'
+    };
+    contentTitle.textContent = titles[section];
+
+    // Charger le contenu via API
+    try {
+        const response = await fetch(`/api/${section}`);
+        const data = await response.json();
+
+        if (data.items && data.items.length > 0) {
+            renderContent(section, data.items);
+        } else {
+            contentBody.innerHTML = '<div class="loading">Aucun élément trouvé</div>';
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement:', error);
+        contentBody.innerHTML = '<div class="loading">Erreur de chargement</div>';
+    }
+
+    // Scroll vers la section de contenu
+    dynamicContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderContent(section, items) {
+    const contentBody = document.getElementById('content-body');
+    let html = '';
+
+    items.forEach(item => {
+        if (section === 'procedures') {
+            html += `
+                <div class="content-item">
+                    <div class="content-item-title">
+                        <a href="/procedures/${item.id}">[PROC-${String(item.id).padStart(4, '0')}] ${item.title}</a>
+                    </div>
+                    ${item.description ? `<div class="content-item-description">${item.description}</div>` : ''}
+                    <div class="content-item-meta">
+                        <span>📁 ${item.category}</span>
+                        <span>👤 ${item.author}</span>
+                        <span>📅 ${item.updated_at}</span>
+                    </div>
+                </div>
+            `;
+        } else if (section === 'scripts') {
+            html += `
+                <div class="content-item">
+                    <div class="content-item-title">
+                        <a href="/scripts/${item.id}">${item.title}</a>
+                    </div>
+                    ${item.description ? `<div class="content-item-description">${item.description}</div>` : ''}
+                    <div class="content-item-meta">
+                        <span>💻 ${item.language}</span>
+                        <span>👤 ${item.author}</span>
+                        <span>📅 ${item.created_at}</span>
+                    </div>
+                </div>
+            `;
+        } else if (section === 'faq') {
+            html += `
+                <div class="content-item">
+                    <div class="content-item-title">
+                        <a href="/faq/${item.id}">${item.question}</a>
+                    </div>
+                    <div class="content-item-meta">
+                        <span>📁 ${item.category}</span>
+                        <span>👁️ ${item.view_count} vues</span>
+                        <span>👍 ${item.helpful_count} utile</span>
+                    </div>
+                </div>
+            `;
+        } else if (section === 'software') {
+            html += `
+                <div class="content-item">
+                    <div class="content-item-title">
+                        <a href="/software/${item.id}">${item.name}</a>
+                    </div>
+                    ${item.description ? `<div class="content-item-description">${item.description}</div>` : ''}
+                    <div class="content-item-meta">
+                        <span>📁 ${item.category}</span>
+                        ${item.platform ? `<span>🖥️ ${item.platform}</span>` : ''}
+                        <span>${item.is_free ? '💚 Gratuit' : '🟠 Payant'}</span>
+                        <span>👍 ${item.useful_count} utile</span>
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    contentBody.innerHTML = html;
+}
+
+function closeContent() {
+    const dynamicContent = document.getElementById('dynamic-content');
+    dynamicContent.style.display = 'none';
+
+    // Retirer la classe active de toutes les cartes
+    document.querySelectorAll('.nav-card').forEach(card => {
+        card.classList.remove('active');
+    });
+
+    currentSection = null;
+}
+</script>
 {% endblock %}

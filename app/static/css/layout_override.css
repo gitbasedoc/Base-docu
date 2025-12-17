@@ -3,11 +3,17 @@
  * Styles pour le nouveau layout sans sidebar
  */
 
-/* Container sans sidebar */
+/* Container sans sidebar - Centré */
+.container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
 .content {
     margin-left: 0 !important;
     max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
     padding: var(--space-xl);
 }
 

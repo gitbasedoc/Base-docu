@@ -68,6 +68,7 @@ def create_app(config_name=None):
         from app.routes.procedures import procedures_bp
         from app.routes.search import search_bp
         from app.routes.api_ai import api_ai_bp
+        from app.routes.api import api_bp
         from app.routes.admin import admin_bp
         from app.routes.files import files_bp
         from app.routes.scripts import scripts_bp
@@ -78,6 +79,7 @@ def create_app(config_name=None):
         app.register_blueprint(procedures_bp)
         app.register_blueprint(search_bp)
         app.register_blueprint(api_ai_bp)
+        app.register_blueprint(api_bp)
         app.register_blueprint(admin_bp)
         app.register_blueprint(files_bp)
         app.register_blueprint(scripts_bp)
