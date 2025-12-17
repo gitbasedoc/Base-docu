@@ -10,39 +10,39 @@
     </div>
 </div>
 
-<!-- Statistiques -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon">📚</div>
-        <div class="stat-content">
-            <div class="stat-value">{{ stats.total_procedures }}</div>
-            <div class="stat-label">Procédures</div>
+<!-- Navigation rapide -->
+<div class="quick-nav-grid">
+    <a href="{{ url_for('procedures.list_procedures') }}" class="nav-card">
+        <div class="nav-icon">📚</div>
+        <div class="nav-content">
+            <div class="nav-title">Procédures</div>
+            <div class="nav-desc">{{ stats.total_procedures }} procédures disponibles</div>
         </div>
-    </div>
+    </a>
 
-    <div class="stat-card">
-        <div class="stat-icon">📁</div>
-        <div class="stat-content">
-            <div class="stat-value">{{ stats.total_categories }}</div>
-            <div class="stat-label">Catégories</div>
+    <a href="{{ url_for('scripts.list_scripts') }}" class="nav-card">
+        <div class="nav-icon">📜</div>
+        <div class="nav-content">
+            <div class="nav-title">Scripts</div>
+            <div class="nav-desc">Bibliothèque de scripts</div>
         </div>
-    </div>
+    </a>
 
-    <div class="stat-card">
-        <div class="stat-icon">🏷️</div>
-        <div class="stat-content">
-            <div class="stat-value">{{ stats.total_tags }}</div>
-            <div class="stat-label">Tags</div>
+    <a href="{{ url_for('faq.list_faqs') }}" class="nav-card">
+        <div class="nav-icon">❓</div>
+        <div class="nav-content">
+            <div class="nav-title">FAQ</div>
+            <div class="nav-desc">Questions fréquentes</div>
         </div>
-    </div>
+    </a>
 
-    <div class="stat-card stat-card-highlight">
-        <div class="stat-icon">✍️</div>
-        <div class="stat-content">
-            <div class="stat-value">{{ stats.my_procedures }}</div>
-            <div class="stat-label">Mes procédures</div>
+    <a href="{{ url_for('software.list_software') }}" class="nav-card nav-card-highlight">
+        <div class="nav-icon">💻</div>
+        <div class="nav-content">
+            <div class="nav-title">Logiciels</div>
+            <div class="nav-desc">Outils et logiciels utiles</div>
         </div>
-    </div>
+    </a>
 </div>
 
 <!-- Procédures récentes -->
@@ -147,4 +147,65 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.quick-nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.nav-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 25px;
+    background: var(--card-bg, #16213e);
+    border: 2px solid var(--border-color, #2a3f5f);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.nav-card:hover {
+    border-color: var(--accent-color, #00ff88);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 255, 136, 0.15);
+}
+
+.nav-card-highlight {
+    border-color: var(--accent-color, #00ff88);
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.05), rgba(22, 33, 62, 0.9));
+}
+
+.nav-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+}
+
+.nav-content {
+    flex: 1;
+}
+
+.nav-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary, #e0e0e0);
+    margin-bottom: 5px;
+}
+
+.nav-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+@media (max-width: 768px) {
+    .quick-nav-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 {% endblock %}

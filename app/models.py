@@ -217,6 +217,35 @@ class FAQ(db.Model):
         return f'<FAQ {self.id}: {self.question[:30]}...>'
 
 
+class Software(db.Model):
+    """Modèle Logiciel - Outils et logiciels utiles"""
+
+    __tablename__ = 'software'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False, index=True)
+    description = db.Column(db.Text, nullable=False)
+    url = db.Column(db.String(500), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False, index=True)
+    added_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_free = db.Column(db.Boolean, default=True)
+    platform = db.Column(db.String(100))  # Windows, Linux, Mac, Web, etc.
+    useful_count = db.Column(db.Integer, default=0)
+
+    # Relations
+    category = db.relationship('Category', backref='software')
+    contributor = db.relationship('User', backref='software', foreign_keys=[added_by])
+
+    def increment_useful(self):
+        """Incrémente le compteur 'utile'"""
+        self.useful_count += 1
+
+    def __repr__(self):
+        return f'<Software {self.id}: {self.name}>'
+
+
 class Tag(db.Model):
     """Modèle Tag"""
 

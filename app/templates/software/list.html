@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}Logiciels - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">💻 Logiciels Utiles</h2>
+    <div class="page-actions">
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('software.new_software') }}" class="btn-primary">[+ Ajouter un logiciel]</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="filters-section">
+    <form method="GET" action="{{ url_for('software.list_software') }}" class="filters-form">
+        <div class="filter-group">
+            <label for="category">Catégorie :</label>
+            <select name="category" id="category" onchange="this.form.submit()">
+                <option value="">Toutes les catégories</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}" {% if current_category == category.id %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="platform">Plateforme :</label>
+            <select name="platform" id="platform" onchange="this.form.submit()">
+                <option value="">Toutes</option>
+                {% for platform in platforms %}
+                <option value="{{ platform }}" {% if current_platform == platform %}selected{% endif %}>
+                    {{ platform }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="free">Type :</label>
+            <select name="free" id="free" onchange="this.form.submit()">
+                <option value="">Tous</option>
+                <option value="true" {% if current_free == 'true' %}selected{% endif %}>Gratuit</option>
+                <option value="false" {% if current_free == 'false' %}selected{% endif %}>Payant</option>
+            </select>
+        </div>
+
+        {% if current_category or current_platform or current_free %}
+        <a href="{{ url_for('software.list_software') }}" class="btn-clear-filters">[Réinitialiser]</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Liste des logiciels -->
+{% if software_list.items %}
+<div class="software-grid">
+    {% for software in software_list.items %}
+    <div class="software-card">
+        <div class="software-header">
+            <h3 class="software-name">
+                <a href="{{ url_for('software.view_software', software_id=software.id) }}">
+                    {{ software.name }}
+                </a>
+            </h3>
+            <div class="software-badges">
+                {% if software.is_free %}
+                <span class="badge badge-free">Gratuit</span>
+                {% else %}
+                <span class="badge badge-paid">Payant</span>
+                {% endif %}
+                {% if software.platform %}
+                <span class="badge badge-platform">{{ software.platform }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <p class="software-description">{{ software.description }}</p>
+
+        <div class="software-meta">
+            <span class="category-badge" style="border-left-color: {{ software.category.color_code if software.category.color_code else '#00ff88' }}">
+                {{ software.category.short_name }}
+            </span>
+            <span class="useful-count">
+                👍 {{ software.useful_count }} utile
+            </span>
+        </div>
+
+        <div class="software-actions">
+            <a href="{{ software.url }}" target="_blank" rel="noopener noreferrer" class="btn-visit">
+                🔗 Visiter
+            </a>
+            <a href="{{ url_for('software.view_software', software_id=software.id) }}" class="btn-details">
+                Détails
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if software_list.pages > 1 %}
+<div class="pagination">
+    {% if software_list.has_prev %}
+    <a href="{{ url_for('software.list_software', page=software_list.prev_num, category=current_category, platform=current_platform, free=current_free) }}" class="pagination-link">
+        ← Précédent
+    </a>
+    {% endif %}
+
+    <span class="pagination-info">
+        Page {{ software_list.page }} sur {{ software_list.pages }}
+    </span>
+
+    {% if software_list.has_next %}
+    <a href="{{ url_for('software.list_software', page=software_list.next_num, category=current_category, platform=current_platform, free=current_free) }}" class="pagination-link">
+        Suivant →
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">📦</div>
+    <p class="empty-message">Aucun logiciel trouvé</p>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('software.new_software') }}" class="btn-primary">[+ Ajouter le premier logiciel]</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+<style>
+.filters-section {
+    background: var(--card-bg, #16213e);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.filters-form {
+    display: flex;
+    gap: 20px;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.filter-group select {
+    padding: 8px 12px;
+    background: var(--bg-secondary, #0f1729);
+    color: var(--text-primary, #e0e0e0);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.btn-clear-filters {
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--accent-color, #00ff88);
+    border: 1px solid var(--accent-color, #00ff88);
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.btn-clear-filters:hover {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+
+.software-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.software-card {
+    background: var(--card-bg, #16213e);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.software-card:hover {
+    border-color: var(--accent-color, #00ff88);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.1);
+}
+
+.software-header {
+    margin-bottom: 15px;
+}
+
+.software-name {
+    font-size: 1.2rem;
+    margin: 0 0 10px 0;
+}
+
+.software-name a {
+    color: var(--text-primary, #e0e0e0);
+    text-decoration: none;
+}
+
+.software-name a:hover {
+    color: var(--accent-color, #00ff88);
+}
+
+.software-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-free {
+    background: #4caf50;
+    color: #fff;
+}
+
+.badge-paid {
+    background: #ff9800;
+    color: #fff;
+}
+
+.badge-platform {
+    background: var(--bg-secondary, #0f1729);
+    color: var(--text-secondary, #a0a0a0);
+    border: 1px solid var(--border-color, #2a3f5f);
+}
+
+.software-description {
+    color: var(--text-secondary, #a0a0a0);
+    line-height: 1.6;
+    margin-bottom: 15px;
+    font-size: 0.95rem;
+}
+
+.software-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color, #2a3f5f);
+}
+
+.category-badge {
+    padding: 4px 10px;
+    border-left: 3px solid;
+    background: var(--bg-secondary, #0f1729);
+    border-radius: 3px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.useful-count {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.software-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-visit, .btn-details {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.btn-visit {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+
+.btn-visit:hover {
+    background: #00dd77;
+    transform: translateY(-2px);
+}
+
+.btn-details {
+    background: transparent;
+    color: var(--text-primary, #e0e0e0);
+    border: 1px solid var(--border-color, #2a3f5f);
+}
+
+.btn-details:hover {
+    border-color: var(--accent-color, #00ff88);
+    background: var(--bg-secondary, #0f1729);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--card-bg, #16213e);
+    border-radius: 8px;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.empty-message {
+    color: var(--text-secondary, #a0a0a0);
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.pagination-link {
+    padding: 10px 20px;
+    background: var(--card-bg, #16213e);
+    color: var(--accent-color, #00ff88);
+    border: 1px solid var(--accent-color, #00ff88);
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.pagination-link:hover {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+
+.pagination-info {
+    color: var(--text-secondary, #a0a0a0);
+}
+
+@media (max-width: 768px) {
+    .software-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+}
+</style>

@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}{{ software.name }} - Logiciels{% endblock %}
+
+{% block content %}
+<div class="software-detail-header">
+    <div class="breadcrumb">
+        <a href="{{ url_for('software.list_software') }}">Logiciels</a> &gt; {{ software.name }}
+    </div>
+
+    <div class="title-section">
+        <div class="title-with-icon">
+            <span class="title-icon">💻</span>
+            <h1>{{ software.name }}</h1>
+        </div>
+
+        <div class="software-badges">
+            <span class="category-badge" style="border-color: {{ software.category.color_code if software.category.color_code else '#00ff88' }}">
+                {{ software.category.name }}
+            </span>
+            {% if software.is_free %}
+            <span class="status-badge free">Gratuit</span>
+            {% else %}
+            <span class="status-badge paid">Payant</span>
+            {% endif %}
+            {% if software.platform %}
+            <span class="platform-badge">{{ software.platform }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="meta-info">
+        <span>👤 Ajouté par : <strong>{{ software.contributor.full_name if software.contributor else 'Système' }}</strong></span>
+        <span>📅 Créé : {{ software.created_at.strftime('%d/%m/%Y à %H:%M') }}</span>
+        <span>🔄 Modifié : {{ software.updated_at.strftime('%d/%m/%Y à %H:%M') }}</span>
+        <span>👍 Utile : <strong id="usefulCount">{{ software.useful_count }}</strong></span>
+    </div>
+</div>
+
+<div class="description-section">
+    <h2>📝 Description</h2>
+    <p class="description-text">{{ software.description }}</p>
+</div>
+
+<div class="url-section">
+    <h2>🔗 Lien</h2>
+    <a href="{{ software.url }}" target="_blank" rel="noopener noreferrer" class="software-url">
+        {{ software.url }}
+        <span class="external-icon">↗</span>
+    </a>
+    <a href="{{ software.url }}" target="_blank" rel="noopener noreferrer" class="btn-visit-large">
+        Visiter le site web
+    </a>
+</div>
+
+<div class="useful-section">
+    <p>Ce logiciel vous est-il utile ?</p>
+    <button onclick="markUseful()" class="btn-useful" id="usefulBtn">
+        👍 Oui, c'est utile (<span id="usefulCountBtn">{{ software.useful_count }}</span>)
+    </button>
+</div>
+
+{% if current_user.is_authenticated and (software.added_by == current_user.id or current_user.is_admin) %}
+<div class="admin-actions">
+    <h3>⚙️ Actions</h3>
+    <div class="action-buttons">
+        <a href="{{ url_for('software.edit_software', software_id=software.id) }}" class="btn-edit">✏️ Modifier</a>
+        <form method="POST" action="{{ url_for('software.delete_software', software_id=software.id) }}"
+              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce logiciel ?')" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn-delete">🗑️ Supprimer</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="navigation-links">
+    <a href="{{ url_for('software.list_software') }}" class="btn-back">← Retour à la liste</a>
+</div>
+
+<script>
+let usefulClicked = false;
+
+async function markUseful() {
+    if (usefulClicked) {
+        alert('Vous avez déjà marqué ce logiciel comme utile !');
+        return;
+    }
+
+    const btn = document.getElementById('usefulBtn');
+    const countBtn = document.getElementById('usefulCountBtn');
+    const countTop = document.getElementById('usefulCount');
+
+    try {
+        const response = await fetch('{{ url_for("software.mark_useful", software_id=software.id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            countBtn.textContent = data.useful_count;
+            countTop.textContent = data.useful_count;
+            btn.classList.add('marked');
+            btn.disabled = true;
+            usefulClicked = true;
+
+            // Animation
+            btn.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                btn.style.transform = 'scale(1)';
+            }, 200);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+}
+</script>
+
+<style>
+.software-detail-header {
+    margin-bottom: 30px;
+}
+
+.breadcrumb {
+    color: var(--text-secondary, #a0a0a0);
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.breadcrumb a {
+    color: var(--accent-color, #00ff88);
+    text-decoration: none;
+}
+
+.title-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.title-icon {
+    font-size: 2.5rem;
+}
+
+.title-with-icon h1 {
+    margin: 0;
+}
+
+.software-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.category-badge {
+    padding: 6px 12px;
+    border-left: 4px solid;
+    background: var(--bg-secondary, #0f1729);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-badge.free {
+    background: #4caf50;
+    color: #fff;
+}
+
+.status-badge.paid {
+    background: #ff9800;
+    color: #fff;
+}
+
+.platform-badge {
+    padding: 6px 12px;
+    background: var(--bg-secondary, #0f1729);
+    color: var(--text-secondary, #a0a0a0);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.meta-info {
+    display: flex;
+    gap: 30px;
+    color: var(--text-secondary, #a0a0a0);
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.description-section, .url-section, .useful-section {
+    background: var(--card-bg, #16213e);
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.description-section {
+    border-left: 4px solid var(--accent-color, #00ff88);
+}
+
+.description-section h2, .url-section h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--accent-color, #00ff88);
+    font-size: 1.2rem;
+}
+
+.description-text {
+    line-height: 1.8;
+    font-size: 1.05rem;
+    color: var(--text-primary, #e0e0e0);
+    margin: 0;
+}
+
+.software-url {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent-color, #00ff88);
+    text-decoration: none;
+    font-size: 1.05rem;
+    margin-bottom: 15px;
+    word-break: break-all;
+}
+
+.software-url:hover {
+    text-decoration: underline;
+}
+
+.external-icon {
+    font-size: 0.9em;
+}
+
+.btn-visit-large {
+    display: inline-block;
+    padding: 12px 30px;
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-top: 15px;
+    transition: all 0.3s ease;
+}
+
+.btn-visit-large:hover {
+    background: #00dd77;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+}
+
+.useful-section {
+    text-align: center;
+}
+
+.useful-section p {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
+
+.btn-useful {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+    border: none;
+    padding: 12px 30px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-useful:hover:not(:disabled) {
+    background: #00dd77;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+}
+
+.btn-useful.marked, .btn-useful:disabled {
+    background: #4caf50;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+.admin-actions {
+    background: var(--card-bg, #16213e);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-edit, .btn-delete {
+    padding: 10px 20px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-edit {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+
+.btn-edit:hover {
+    background: #00dd77;
+}
+
+.btn-delete {
+    background: #f44336;
+    color: #fff;
+}
+
+.btn-delete:hover {
+    background: #d32f2f;
+}
+
+.navigation-links {
+    margin-top: 25px;
+}
+
+.btn-back {
+    display: inline-block;
+    padding: 10px 20px;
+    background: var(--bg-secondary, #0f1729);
+    color: var(--accent-color, #00ff88);
+    border: 1px solid var(--accent-color, #00ff88);
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+</style>
+{% endblock %}

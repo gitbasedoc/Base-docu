@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifier' if software else 'Ajouter' }} un logiciel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="breadcrumb">
+        <a href="{{ url_for('software.list_software') }}">Logiciels</a> &gt;
+        {% if software %}
+        <a href="{{ url_for('software.view_software', software_id=software.id) }}">{{ software.name[:50] }}...</a> &gt; Modifier
+        {% else %}
+        Ajouter
+        {% endif %}
+    </div>
+    <h1>{% if software %}✏️ Modifier le logiciel{% else %}➕ Ajouter un logiciel{% endif %}</h1>
+</div>
+
+<form method="POST" class="software-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    <div class="form-group">
+        <label for="name" class="form-label">Nom du logiciel *</label>
+        <input
+            type="text"
+            id="name"
+            name="name"
+            class="form-input"
+            value="{{ software.name if software else '' }}"
+            required
+            placeholder="Ex: Visual Studio Code"
+            autofocus
+        >
+        <div class="form-help">
+            💡 Nom complet du logiciel
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="url" class="form-label">URL *</label>
+        <input
+            type="url"
+            id="url"
+            name="url"
+            class="form-input"
+            value="{{ software.url if software else '' }}"
+            required
+            placeholder="https://example.com"
+        >
+        <div class="form-help">
+            💡 Lien vers le site officiel ou la page de téléchargement
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="description" class="form-label">Description *</label>
+        <textarea
+            id="description"
+            name="description"
+            class="form-textarea"
+            rows="5"
+            required
+            placeholder="Décrivez le logiciel, son utilité, ses fonctionnalités principales..."
+        >{{ software.description if software else '' }}</textarea>
+        <div class="form-help">
+            💡 Décrivez le logiciel et ses cas d'usage pour le service IT
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="category_id" class="form-label">Catégorie *</label>
+            <select id="category_id" name="category_id" class="form-select" required>
+                <option value="">Choisir une catégorie...</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}" {% if software and software.category_id == category.id %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="platform" class="form-label">Plateforme</label>
+            <select id="platform" name="platform" class="form-select">
+                <option value="">Non spécifiée</option>
+                <option value="Windows" {% if software and software.platform == 'Windows' %}selected{% endif %}>Windows</option>
+                <option value="Linux" {% if software and software.platform == 'Linux' %}selected{% endif %}>Linux</option>
+                <option value="macOS" {% if software and software.platform == 'macOS' %}selected{% endif %}>macOS</option>
+                <option value="Web" {% if software and software.platform == 'Web' %}selected{% endif %}>Web</option>
+                <option value="Cross-platform" {% if software and software.platform == 'Cross-platform' %}selected{% endif %}>Multi-plateforme</option>
+                <option value="Mobile" {% if software and software.platform == 'Mobile' %}selected{% endif %}>Mobile</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="checkbox-label">
+            <input
+                type="checkbox"
+                name="is_free"
+                {% if not software or software.is_free %}checked{% endif %}
+            >
+            <span>Logiciel gratuit</span>
+        </label>
+        <div class="form-help">
+            💡 Décochez si le logiciel est payant ou nécessite une licence
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-primary">
+            {% if software %}💾 Enregistrer les modifications{% else %}➕ Ajouter le logiciel{% endif %}
+        </button>
+        <a href="{{ url_for('software.list_software') }}" class="btn-secondary">Annuler</a>
+    </div>
+</form>
+
+<style>
+.software-form {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-primary, #e0e0e0);
+    font-weight: 500;
+}
+
+.form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--bg-secondary, #0f1729);
+    color: var(--text-primary, #e0e0e0);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--accent-color, #00ff88);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-help {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 1px solid var(--border-color, #2a3f5f);
+}
+
+.btn-primary, .btn-secondary {
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background: var(--accent-color, #00ff88);
+    color: var(--bg-primary, #1a1a2e);
+}
+
+.btn-primary:hover {
+    background: #00dd77;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-primary, #e0e0e0);
+    border: 1px solid var(--border-color, #2a3f5f);
+    display: inline-block;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-secondary, #0f1729);
+    border-color: var(--accent-color, #00ff88);
+}
+
+.breadcrumb {
+    color: var(--text-secondary, #a0a0a0);
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.breadcrumb a {
+    color: var(--accent-color, #00ff88);
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}

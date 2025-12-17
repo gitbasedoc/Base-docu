@@ -99,6 +99,13 @@
                         </a>
                     </li>
 
+                    <li class="nav-item">
+                        <a href="{{ url_for('software.list_software') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('software.') %}active{% endif %}">
+                            <span class="nav-icon">💻</span>
+                            <span class="nav-text">Logiciels</span>
+                        </a>
+                    </li>
+
                     <li class="nav-section">
                         <div class="nav-section-title">
                             <span class="nav-icon">📁</span>
