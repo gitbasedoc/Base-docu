@@ -93,8 +93,7 @@
         <textarea id="content"
                   name="content"
                   class="form-textarea form-textarea-large"
-                  rows="20"
-                  required>{{ procedure.content if procedure else '' }}</textarea>
+                  rows="20">{{ procedure.content if procedure else '' }}</textarea>
         <div class="form-help">
             💡 Éditeur complet : mise en forme, images par drag & drop, tableaux, listes, etc.
         </div>
@@ -188,8 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
     plugins: [
         'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
         'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-        'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
-        'paste'
+        'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
     ],
     toolbar: 'undo redo | blocks | bold italic underline strikethrough | ' +
              'alignleft aligncenter alignright alignjustify | ' +
