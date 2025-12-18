@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Suggestion #{{ suggestion.id }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{{ url_for('procedures.home') }}">[Home]</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="{{ url_for('suggestions.list_suggestions') }}">[Suggestions]</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>[#{{ suggestion.id }}]</span>
+        </div>
+        <h2 class="page-title">// Suggestion #{{ suggestion.id }}</h2>
+    </div>
+</div>
+
+<div class="section" style="max-width: 800px;">
+    <div class="suggestion-detail">
+        <div class="suggestion-header-detail">
+            <h3 class="suggestion-title-detail">{{ suggestion.title }}</h3>
+            <div class="suggestion-badges">
+                <span class="suggestion-status status-{{ suggestion.status }}">
+                    {{ suggestion.get_status_label() }}
+                </span>
+                <span class="suggestion-category-badge">{{ suggestion.get_category_label() }}</span>
+                {% if suggestion.priority %}
+                <span class="suggestion-priority-badge">{{ suggestion.get_priority_label() }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="suggestion-meta-detail">
+            <div class="meta-item">
+                <strong>Créée par :</strong> {{ suggestion.user.full_name if suggestion.user else 'Utilisateur supprimé' }}
+            </div>
+            <div class="meta-item">
+                <strong>Date :</strong> {{ suggestion.created_at.strftime('%d/%m/%Y à %H:%M') }}
+            </div>
+            {% if suggestion.updated_at != suggestion.created_at %}
+            <div class="meta-item">
+                <strong>Dernière mise à jour :</strong> {{ suggestion.updated_at.strftime('%d/%m/%Y à %H:%M') }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="suggestion-description-detail">
+            <h4 class="section-subtitle">Description</h4>
+            <div class="description-content">{{ suggestion.description }}</div>
+        </div>
+
+        {% if suggestion.admin_response %}
+        <div class="admin-response-detail">
+            <h4 class="section-subtitle">📝 Réponse de l'équipe</h4>
+            <div class="admin-response-content">{{ suggestion.admin_response }}</div>
+        </div>
+        {% endif %}
+
+        <div class="suggestion-actions-detail">
+            <a href="{{ url_for('suggestions.list_suggestions') }}" class="btn-secondary">[← Retour]</a>
+            {% if suggestion.status == 'pending' and (current_user.has_permission('admin') or suggestion.user_id == current_user.id) %}
+            <form method="POST" action="{{ url_for('suggestions.delete_suggestion', suggestion_id=suggestion.id) }}" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn-danger" onclick="return confirm('Supprimer cette suggestion ?')">[Supprimer]</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.suggestion-detail {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 2rem;
+}
+
+.suggestion-header-detail {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.suggestion-title-detail {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.suggestion-badges {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.suggestion-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    font-family: 'Fira Code', monospace;
+}
+
+.status-pending { background: #fbbf24; color: #1a1a2e; }
+.status-reviewed { background: #3b82f6; color: white; }
+.status-accepted { background: #10b981; color: white; }
+.status-rejected { background: #ef4444; color: white; }
+.status-implemented { background: #8b5cf6; color: white; }
+
+.suggestion-category-badge,
+.suggestion-priority-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-family: 'Fira Code', monospace;
+}
+
+.suggestion-meta-detail {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.375rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.meta-item strong {
+    color: var(--text-primary);
+}
+
+.suggestion-description-detail,
+.admin-response-detail {
+    margin-bottom: 1.5rem;
+}
+
+.section-subtitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.description-content {
+    color: var(--text-primary);
+    line-height: 1.8;
+    white-space: pre-wrap;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.375rem;
+}
+
+.admin-response-detail {
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--accent-cyan);
+    padding: 1.5rem;
+    border-radius: 0.375rem;
+}
+
+.admin-response-content {
+    color: var(--text-primary);
+    line-height: 1.8;
+    white-space: pre-wrap;
+}
+
+.suggestion-actions-detail {
+    display: flex;
+    gap: 0.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+</style>
+{% endblock %}
