@@ -159,12 +159,12 @@
 
     <!-- Actions -->
     <div class="form-actions">
-        <a href="{{ url_for('procedures.view_procedure', procedure_id=procedure.id) if procedure else url_for('procedures.list_procedures') }}" class="btn-secondary">
-            [Annuler]
-        </a>
         <button type="submit" class="btn-primary">
-            [{{ 'Enregistrer les modifications' if procedure else 'Créer la procédure' }}]
+            {{ '💾 Enregistrer les modifications' if procedure else '➕ Créer la procédure' }}
         </button>
+        <a href="{{ url_for('procedures.view_procedure', procedure_id=procedure.id) if procedure else url_for('procedures.list_procedures') }}" class="btn-secondary">
+            Annuler
+        </a>
     </div>
 </form>
 
@@ -385,51 +385,50 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitBtn = document.querySelector('#procedureForm button[type="submit"]');
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.textContent = '{% if procedure %}[Enregistrer les modifications]{% else %}[Créer la procédure]{% endif %}';
+                submitBtn.textContent = '{% if procedure %}💾 Enregistrer les modifications{% else %}➕ Créer la procédure{% endif %}';
             }
         });
     }
-});
 
-// ===========================
-// Synchronisation avant soumission du formulaire
-// ===========================
-const form = document.getElementById('procedureForm');
-const submitButton = form.querySelector('button[type="submit"]');
+    // ===========================
+    // Synchronisation avant soumission du formulaire
+    // ===========================
+    const form = document.getElementById('procedureForm');
+    const submitButton = form.querySelector('button[type="submit"]');
 
-// Désactiver le bouton submit initialement
-if (submitButton) {
-    submitButton.disabled = true;
-    submitButton.textContent = '[Chargement de l\'éditeur...]';
-}
-
-form.addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    // Attendre que TinyMCE soit prêt
-    const editor = tinymce.get('content');
-
-    if (!editor) {
-        alert('L\'éditeur n\'est pas encore prêt. Veuillez patienter quelques secondes et réessayer.');
-        return false;
+    // Désactiver le bouton submit initialement
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Chargement de l\'éditeur...';
     }
 
-    // Synchroniser le contenu de TinyMCE avec le textarea
-    editor.save();
+    form.addEventListener('submit', function(e) {
+        // Attendre que TinyMCE soit prêt
+        const editor = tinymce.get('content');
 
-    // Vérifier que le contenu n'est pas vide
-    const content = document.getElementById('content').value.trim();
-    console.log('Contenu du formulaire:', content.substring(0, 200));
+        if (!editor) {
+            e.preventDefault();
+            alert('L\'éditeur n\'est pas encore prêt. Veuillez patienter quelques secondes et réessayer.');
+            return false;
+        }
 
-    if (!content || content === '<p></p>' || content === '<p><br></p>' || content === '') {
-        alert('Le contenu de la procédure est requis');
-        return false;
-    }
+        // Synchroniser le contenu de TinyMCE avec le textarea
+        editor.save();
 
-    // Si tout est OK, soumettre le formulaire
-    console.log('Formulaire valide, soumission en cours...');
-    this.submit();
-});
+        // Vérifier que le contenu n'est pas vide
+        const content = document.getElementById('content').value.trim();
+        console.log('Contenu du formulaire:', content.substring(0, 200));
+
+        if (!content || content === '<p></p>' || content === '<p><br></p>' || content === '') {
+            e.preventDefault();
+            alert('Le contenu de la procédure est requis');
+            return false;
+        }
+
+        // Si tout est OK, laisser le formulaire se soumettre naturellement
+        console.log('Formulaire valide, soumission en cours...');
+        // Le formulaire se soumettra automatiquement (pas besoin de this.submit())
+    });
 
 // ===========================
 // Import de document PDF/Word
@@ -596,7 +595,7 @@ async function reformulateContent() {
 
 <style>
 .procedure-form {
-    max-width: 900px;
+    max-width: 1200px;
 }
 
 .form-group {
@@ -715,7 +714,7 @@ async function reformulateContent() {
 .form-actions {
     display: flex;
     gap: 1rem;
-    justify-content: flex-end;
+    justify-content: flex-start;
     margin-top: 2rem;
     padding-top: 2rem;
     border-top: 1px solid var(--border-color);
