@@ -60,6 +60,8 @@ migrations=(
     "create_action_logs_table.sql:Audit log"
     "create_comments_table.sql:Commentaires"
     "add_fulltext_search_to_procedures.sql:Recherche FTS"
+    "add_views_count_to_procedures.sql:Compteur vues"
+    "create_favorites_table.sql:Favoris"
 )
 
 for migration in "${migrations[@]}"; do
@@ -95,14 +97,26 @@ step "7/7 Vérification finale"
 # Vérifier tables
 TABLES_COUNT=$(sudo -u postgres psql -d "$DB_NAME" -t -c "
     SELECT COUNT(*) FROM information_schema.tables
-    WHERE table_name IN ('action_logs', 'comments')
+    WHERE table_name IN ('action_logs', 'comments', 'favorites')
     AND table_schema = 'public';
 " | tr -d ' ')
 
-if [ "$TABLES_COUNT" -eq 2 ]; then
-    success "Tables créées (action_logs, comments)"
+if [ "$TABLES_COUNT" -eq 3 ]; then
+    success "Tables créées (action_logs, comments, favorites)"
 else
-    echo "  ⚠ Certaines tables manquantes ($TABLES_COUNT/2)"
+    echo "  ⚠ Certaines tables manquantes ($TABLES_COUNT/3)"
+fi
+
+# Vérifier colonne views_count
+VIEWS_COUNT=$(sudo -u postgres psql -d "$DB_NAME" -t -c "
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_name = 'procedures' AND column_name = 'views_count';
+" | tr -d ' ')
+
+if [ "$VIEWS_COUNT" -eq 1 ]; then
+    success "Colonne views_count créée"
+else
+    echo "  ⚠ Colonne views_count manquante"
 fi
 
 # Vérifier search_vector
@@ -127,6 +141,12 @@ echo "  2. ✓ Système d'audit log complet"
 echo "  3. ✓ Système de commentaires avec réponses"
 echo "  4. ✓ Export PDF/DOCX"
 echo "  5. ✓ Recherche PostgreSQL Full-Text Search"
+echo "  6. ✓ Système de favoris/bookmarks"
+echo "  7. ✓ Compteur de vues sur procédures"
+echo "  8. ✓ Table des matières automatique"
+echo "  9. ✓ Saisie prédictive dans la recherche"
+echo " 10. ✓ Dashboard statistiques administrateur"
+echo " 11. ✓ Fix sauvegarde procédures/FAQs (TinyMCE sync)"
 
 echo -e "\n${YELLOW}Vérification :${NC}"
 echo "  Logs: sudo journalctl -u $SERVICE_NAME -n 50"
