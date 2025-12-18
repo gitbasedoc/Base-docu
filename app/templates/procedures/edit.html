@@ -22,7 +22,7 @@
     </div>
 </div>
 
-<form method="POST" enctype="multipart/form-data" class="procedure-form">
+<form method="POST" enctype="multipart/form-data" class="procedure-form" id="procedureForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
     <!-- Titre -->
@@ -301,6 +301,27 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('TinyMCE initialisé avec succès');
         });
     }
+});
+
+// ===========================
+// Synchronisation avant soumission du formulaire
+// ===========================
+document.getElementById('procedureForm').addEventListener('submit', function(e) {
+    // Synchroniser le contenu de TinyMCE avec le textarea
+    if (tinymce.get('content')) {
+        tinymce.get('content').save();
+    }
+
+    // Vérifier que le contenu n'est pas vide
+    const content = document.getElementById('content').value.trim();
+    if (!content || content === '<p></p>' || content === '') {
+        e.preventDefault();
+        alert('Le contenu de la procédure est requis');
+        return false;
+    }
+
+    console.log('Formulaire soumis avec contenu:', content.substring(0, 100) + '...');
+    return true;
 });
 
 // ===========================

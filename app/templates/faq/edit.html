@@ -21,7 +21,7 @@
     <h1>{% if faq %}✏️ Modifier la FAQ{% else %}➕ Nouvelle FAQ{% endif %}</h1>
 </div>
 
-<form method="POST" class="faq-form">
+<form method="POST" class="faq-form" id="faqForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
     <div class="form-group">
@@ -180,6 +180,27 @@ document.addEventListener('DOMContentLoaded', function() {
         branding: false,
         promotion: false,
         language: 'fr_FR'
+    });
+
+    // ===========================
+    // Synchronisation avant soumission du formulaire
+    // ===========================
+    document.getElementById('faqForm').addEventListener('submit', function(e) {
+        // Synchroniser le contenu de TinyMCE avec le textarea
+        if (tinymce.get('answer')) {
+            tinymce.get('answer').save();
+        }
+
+        // Vérifier que la réponse n'est pas vide
+        const answer = document.getElementById('answer').value.trim();
+        if (!answer || answer === '<p></p>' || answer === '') {
+            e.preventDefault();
+            alert('La réponse est requise');
+            return false;
+        }
+
+        console.log('Formulaire FAQ soumis avec réponse:', answer.substring(0, 100) + '...');
+        return true;
     });
 
     // Gestion de l'import de documents
