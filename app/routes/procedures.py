@@ -124,14 +124,22 @@ def view_procedure(procedure_id):
     except Exception:
         pass
 
-    # Récupérer les versions
-    versions = procedure.versions.limit(10).all()
+    # Récupérer les versions (avec gestion d'erreur si table n'existe pas)
+    versions = []
+    try:
+        versions = procedure.versions.limit(10).all()
+    except Exception:
+        pass
 
     # Récupérer les commentaires (seulement les commentaires parents, pas les réponses)
-    comments = Comment.query.filter_by(
-        procedure_id=procedure.id,
-        parent_id=None
-    ).order_by(Comment.created_at.desc()).all()
+    comments = []
+    try:
+        comments = Comment.query.filter_by(
+            procedure_id=procedure.id,
+            parent_id=None
+        ).order_by(Comment.created_at.desc()).all()
+    except Exception:
+        pass
 
     return render_template(
         'procedures/detail.html',
