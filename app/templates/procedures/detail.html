@@ -132,8 +132,8 @@
         <div class="version-item">
             <div class="version-number">v{{ version.version_number }}</div>
             <div class="version-info">
-                <div class="version-user">{{ version.user.full_name if version.user else 'Inconnu' }}</div>
-                <div class="version-date">{{ version.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                <div class="version-user">{{ version.author.full_name if version.author else 'Inconnu' }}</div>
+                <div class="version-date">{{ version.changed_at.strftime('%d/%m/%Y %H:%M') }}</div>
             </div>
         </div>
         {% endfor %}
