@@ -8,7 +8,7 @@ from functools import wraps
 
 from app import db
 from app.models import User, Category, Setting, ActionLog, Procedure, Script, FAQ, Software, Favorite, Suggestion
-from app.utils.audit_logger import log_action
+# from app.utils.audit_logger import log_action
 from sqlalchemy import func
 from datetime import datetime, timedelta
 
@@ -241,7 +241,7 @@ def change_user_role(user_id):
     flash(f'Rôle de {user.full_name} modifié: {role_labels[old_role]} → {role_labels[new_role]}', 'success')
 
     # Log l'action
-    log_action('user_role_changed', user_id=user.id, details=f'Rôle modifié de {old_role} à {new_role}')
+    # log_action('user_role_changed', user_id=user.id, details=f'Rôle modifié de {old_role} à {new_role}')
 
     return redirect(url_for('admin.list_users'))
 
@@ -492,8 +492,8 @@ def update_suggestion(suggestion_id):
     db.session.commit()
 
     # Log l'action
-    log_action('suggestion_updated', user_id=current_user.id,
-               details=f'Suggestion #{suggestion_id} mise à jour: {old_status} → {suggestion.status}')
+    # log_action('suggestion_updated', user_id=current_user.id,
+    #            details=f'Suggestion #{suggestion_id} mise à jour: {old_status} → {suggestion.status}')
 
     flash('Suggestion mise à jour', 'success')
     return redirect(url_for('admin.manage_suggestions'))

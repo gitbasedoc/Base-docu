@@ -9,7 +9,7 @@ import re
 
 from app import db
 from app.models import User, Setting
-from app.utils.audit_logger import log_action
+# from app.utils.audit_logger import log_action
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -147,7 +147,7 @@ def register():
             db.session.commit()
 
             # Log l'action
-            log_action('user_registered', user_id=new_user.id, details=f'Nouvel utilisateur inscrit: {email}')
+            # log_action('user_registered', user_id=new_user.id, details=f'Nouvel utilisateur inscrit: {email}')
 
             flash('Votre compte a été créé avec succès! Vous pouvez maintenant vous connecter.', 'success')
             return redirect(url_for('auth.login'))

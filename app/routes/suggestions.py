@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 
 from app import db
 from app.models import Suggestion
-from app.utils.audit_logger import log_action
+# from app.utils.audit_logger import log_action
 
 suggestions_bp = Blueprint('suggestions', __name__, url_prefix='/suggestions')
 
@@ -74,7 +74,7 @@ def new_suggestion():
         db.session.commit()
 
         # Log l'action
-        log_action('suggestion_created', user_id=current_user.id, details=f'Suggestion créée: {title}')
+        # log_action('suggestion_created', user_id=current_user.id, details=f'Suggestion créée: {title}')
 
         flash('Votre suggestion a été envoyée avec succès! Merci pour votre contribution.', 'success')
         return redirect(url_for('suggestions.list_suggestions'))
@@ -117,7 +117,7 @@ def delete_suggestion(suggestion_id):
     db.session.commit()
 
     # Log l'action
-    log_action('suggestion_deleted', user_id=current_user.id, details=f'Suggestion supprimée: {title}')
+    # log_action('suggestion_deleted', user_id=current_user.id, details=f'Suggestion supprimée: {title}')
 
     flash('Suggestion supprimée', 'success')
     return redirect(url_for('suggestions.list_suggestions'))
