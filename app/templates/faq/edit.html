@@ -179,28 +179,61 @@ document.addEventListener('DOMContentLoaded', function() {
         file_picker_types: 'image',
         branding: false,
         promotion: false,
-        language: 'fr_FR'
+        language: 'fr_FR',
+
+        // Callback après initialisation
+        setup: function(editor) {
+            editor.on('init', function() {
+                console.log('TinyMCE FAQ initialisé avec succès');
+
+                // Réactiver le bouton submit maintenant que l'éditeur est prêt
+                const submitBtn = document.querySelector('#faqForm button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '{% if faq %}💾 Enregistrer les modifications{% else %}➕ Créer la FAQ{% endif %}';
+                }
+            });
+        }
     });
 
     // ===========================
     // Synchronisation avant soumission du formulaire
     // ===========================
-    document.getElementById('faqForm').addEventListener('submit', function(e) {
-        // Synchroniser le contenu de TinyMCE avec le textarea
-        if (tinymce.get('answer')) {
-            tinymce.get('answer').save();
+    const faqForm = document.getElementById('faqForm');
+    const faqSubmitButton = faqForm.querySelector('button[type="submit"]');
+
+    // Désactiver le bouton submit initialement
+    if (faqSubmitButton) {
+        faqSubmitButton.disabled = true;
+        faqSubmitButton.textContent = 'Chargement de l\'éditeur...';
+    }
+
+    faqForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Attendre que TinyMCE soit prêt
+        const editor = tinymce.get('answer');
+
+        if (!editor) {
+            alert('L\'éditeur n\'est pas encore prêt. Veuillez patienter quelques secondes et réessayer.');
+            return false;
         }
+
+        // Synchroniser le contenu de TinyMCE avec le textarea
+        editor.save();
 
         // Vérifier que la réponse n'est pas vide
         const answer = document.getElementById('answer').value.trim();
-        if (!answer || answer === '<p></p>' || answer === '') {
-            e.preventDefault();
+        console.log('Contenu de la réponse:', answer.substring(0, 200));
+
+        if (!answer || answer === '<p></p>' || answer === '<p><br></p>' || answer === '') {
             alert('La réponse est requise');
             return false;
         }
 
-        console.log('Formulaire FAQ soumis avec réponse:', answer.substring(0, 100) + '...');
-        return true;
+        // Si tout est OK, soumettre le formulaire
+        console.log('Formulaire FAQ valide, soumission en cours...');
+        this.submit();
     });
 
     // Gestion de l'import de documents

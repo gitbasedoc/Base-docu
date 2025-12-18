@@ -299,6 +299,13 @@ document.addEventListener('DOMContentLoaded', function() {
     setup: function(editor) {
         editor.on('init', function() {
             console.log('TinyMCE initialisé avec succès');
+
+            // Réactiver le bouton submit maintenant que l'éditeur est prêt
+            const submitBtn = document.querySelector('#procedureForm button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '{% if procedure %}[Enregistrer les modifications]{% else %}[Créer la procédure]{% endif %}';
+            }
         });
     }
 });
@@ -306,22 +313,41 @@ document.addEventListener('DOMContentLoaded', function() {
 // ===========================
 // Synchronisation avant soumission du formulaire
 // ===========================
-document.getElementById('procedureForm').addEventListener('submit', function(e) {
-    // Synchroniser le contenu de TinyMCE avec le textarea
-    if (tinymce.get('content')) {
-        tinymce.get('content').save();
+const form = document.getElementById('procedureForm');
+const submitButton = form.querySelector('button[type="submit"]');
+
+// Désactiver le bouton submit initialement
+if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = '[Chargement de l\'éditeur...]';
+}
+
+form.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    // Attendre que TinyMCE soit prêt
+    const editor = tinymce.get('content');
+
+    if (!editor) {
+        alert('L\'éditeur n\'est pas encore prêt. Veuillez patienter quelques secondes et réessayer.');
+        return false;
     }
+
+    // Synchroniser le contenu de TinyMCE avec le textarea
+    editor.save();
 
     // Vérifier que le contenu n'est pas vide
     const content = document.getElementById('content').value.trim();
-    if (!content || content === '<p></p>' || content === '') {
-        e.preventDefault();
+    console.log('Contenu du formulaire:', content.substring(0, 200));
+
+    if (!content || content === '<p></p>' || content === '<p><br></p>' || content === '') {
         alert('Le contenu de la procédure est requis');
         return false;
     }
 
-    console.log('Formulaire soumis avec contenu:', content.substring(0, 100) + '...');
-    return true;
+    // Si tout est OK, soumettre le formulaire
+    console.log('Formulaire valide, soumission en cours...');
+    this.submit();
 });
 
 // ===========================
