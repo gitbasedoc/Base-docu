@@ -47,33 +47,60 @@ def dashboard():
     total_software = Software.query.count()
     total_categories = Category.query.count()
 
-    # Statistiques d'engagement
-    total_views = db.session.query(func.sum(Procedure.views_count)).scalar() or 0
-    total_likes = db.session.query(func.sum(Procedure.useful_count)).scalar() or 0
-    total_favorites = Favorite.query.count()
+    # Statistiques d'engagement (avec gestion d'erreur si colonnes n'existent pas)
+    total_views = 0
+    total_likes = 0
+    total_favorites = 0
+    top_viewed = []
+    top_liked = []
+    top_favorited = []
+
+    try:
+        total_views = db.session.query(func.sum(Procedure.views_count)).scalar() or 0
+    except Exception:
+        pass
+
+    try:
+        total_likes = db.session.query(func.sum(Procedure.useful_count)).scalar() or 0
+    except Exception:
+        pass
+
+    try:
+        total_favorites = Favorite.query.count()
+    except Exception:
+        pass
 
     # Top 5 procédures par vues
-    top_viewed = Procedure.query.filter_by(is_archived=False)\
-        .order_by(Procedure.views_count.desc())\
-        .limit(5)\
-        .all()
+    try:
+        top_viewed = Procedure.query.filter_by(is_archived=False)\
+            .order_by(Procedure.views_count.desc())\
+            .limit(5)\
+            .all()
+    except Exception:
+        pass
 
     # Top 5 procédures par likes
-    top_liked = Procedure.query.filter_by(is_archived=False)\
-        .order_by(Procedure.useful_count.desc())\
-        .limit(5)\
-        .all()
+    try:
+        top_liked = Procedure.query.filter_by(is_archived=False)\
+            .order_by(Procedure.useful_count.desc())\
+            .limit(5)\
+            .all()
+    except Exception:
+        pass
 
     # Top 5 procédures les plus favoritées
-    top_favorited = db.session.query(
-        Procedure,
-        func.count(Favorite.id).label('favorite_count')
-    ).join(Favorite, Favorite.procedure_id == Procedure.id)\
-     .filter(Procedure.is_archived == False)\
-     .group_by(Procedure.id)\
-     .order_by(func.count(Favorite.id).desc())\
-     .limit(5)\
-     .all()
+    try:
+        top_favorited = db.session.query(
+            Procedure,
+            func.count(Favorite.id).label('favorite_count')
+        ).join(Favorite, Favorite.procedure_id == Procedure.id)\
+         .filter(Procedure.is_archived == False)\
+         .group_by(Procedure.id)\
+         .order_by(func.count(Favorite.id).desc())\
+         .limit(5)\
+         .all()
+    except Exception:
+        pass
 
     # Activité récente (7 derniers jours)
     week_ago = datetime.utcnow() - timedelta(days=7)

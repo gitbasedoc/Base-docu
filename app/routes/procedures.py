@@ -26,14 +26,21 @@ def home():
         .limit(10)\
         .all()
 
-    # Récupérer les favoris de l'utilisateur
-    favorite_procedures = db.session.query(Procedure)\
-        .join(Favorite, Favorite.procedure_id == Procedure.id)\
-        .filter(Favorite.user_id == current_user.id)\
-        .filter(Procedure.is_archived == False)\
-        .order_by(Favorite.created_at.desc())\
-        .limit(5)\
-        .all()
+    # Récupérer les favoris de l'utilisateur (avec gestion d'erreur si table n'existe pas)
+    favorite_procedures = []
+    favorite_count = 0
+    try:
+        favorite_procedures = db.session.query(Procedure)\
+            .join(Favorite, Favorite.procedure_id == Procedure.id)\
+            .filter(Favorite.user_id == current_user.id)\
+            .filter(Procedure.is_archived == False)\
+            .order_by(Favorite.created_at.desc())\
+            .limit(5)\
+            .all()
+        favorite_count = Favorite.query.filter_by(user_id=current_user.id).count()
+    except Exception as e:
+        # Table favorites n'existe pas encore, ignorer silencieusement
+        pass
 
     # Statistiques
     stats = {
@@ -41,7 +48,7 @@ def home():
         'total_categories': Category.query.count(),
         'total_tags': Tag.query.count(),
         'my_procedures': Procedure.query.filter_by(created_by=current_user.id, is_archived=False).count(),
-        'favorite_count': Favorite.query.filter_by(user_id=current_user.id).count()
+        'favorite_count': favorite_count
     }
 
     return render_template('home.html', recent_procedures=recent_procedures, favorite_procedures=favorite_procedures, stats=stats)
@@ -103,12 +110,19 @@ def view_procedure(procedure_id):
     """
     procedure = Procedure.query.get_or_404(procedure_id)
 
-    # Incrémenter le compteur de vues
-    procedure.increment_view()
-    db.session.commit()
+    # Incrémenter le compteur de vues (avec gestion d'erreur si colonne n'existe pas)
+    try:
+        procedure.increment_view()
+        db.session.commit()
+    except Exception:
+        pass
 
-    # Vérifier si la procédure est en favoris
-    is_favorited = Favorite.is_favorited(current_user.id, procedure.id)
+    # Vérifier si la procédure est en favoris (avec gestion d'erreur si table n'existe pas)
+    is_favorited = False
+    try:
+        is_favorited = Favorite.is_favorited(current_user.id, procedure.id)
+    except Exception:
+        pass
 
     # Récupérer les versions
     versions = procedure.versions.limit(10).all()
