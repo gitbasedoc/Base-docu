@@ -294,12 +294,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     faqForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-
         // Attendre que TinyMCE soit prêt
         const editor = tinymce.get('answer');
 
         if (!editor) {
+            e.preventDefault();
             alert('L\'éditeur n\'est pas encore prêt. Veuillez patienter quelques secondes et réessayer.');
             return false;
         }
@@ -312,13 +311,14 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Contenu de la réponse:', answer.substring(0, 200));
 
         if (!answer || answer === '<p></p>' || answer === '<p><br></p>' || answer === '') {
+            e.preventDefault();
             alert('La réponse est requise');
             return false;
         }
 
-        // Si tout est OK, soumettre le formulaire
+        // Si tout est OK, laisser le formulaire se soumettre naturellement
         console.log('Formulaire FAQ valide, soumission en cours...');
-        this.submit();
+        // Le formulaire se soumettra automatiquement (pas besoin de this.submit())
     });
 
     // Gestion de l'import de documents
