@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Mes suggestions - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{{ url_for('procedures.home') }}">[Home]</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>[Mes suggestions]</span>
+        </div>
+        <h2 class="page-title">// Mes suggestions</h2>
+    </div>
+    <div>
+        <a href="{{ url_for('suggestions.new_suggestion') }}" class="btn-primary">[+ Nouvelle suggestion]</a>
+    </div>
+</div>
+
+{% if suggestions.items %}
+<div class="section">
+    <div class="suggestions-list">
+        {% for suggestion in suggestions.items %}
+        <div class="suggestion-card">
+            <div class="suggestion-header">
+                <div class="suggestion-title-row">
+                    <h3 class="suggestion-title">{{ suggestion.title }}</h3>
+                    <span class="suggestion-status status-{{ suggestion.status }}">
+                        {{ suggestion.get_status_label() }}
+                    </span>
+                </div>
+                <div class="suggestion-meta">
+                    <span class="suggestion-category">{{ suggestion.get_category_label() }}</span>
+                    {% if suggestion.priority %}
+                    <span class="suggestion-priority">{{ suggestion.get_priority_label() }}</span>
+                    {% endif %}
+                    <span class="suggestion-date">{{ suggestion.created_at.strftime('%d/%m/%Y') }}</span>
+                </div>
+            </div>
+            <div class="suggestion-description">
+                {{ suggestion.description[:200] }}{% if suggestion.description|length > 200 %}...{% endif %}
+            </div>
+            {% if suggestion.admin_response %}
+            <div class="admin-response">
+                <div class="admin-response-label">📝 Réponse de l'équipe :</div>
+                <div class="admin-response-text">{{ suggestion.admin_response }}</div>
+            </div>
+            {% endif %}
+            <div class="suggestion-actions">
+                <a href="{{ url_for('suggestions.view_suggestion', suggestion_id=suggestion.id) }}" class="btn-sm">[Voir]</a>
+                {% if suggestion.status == 'pending' %}
+                <form method="POST" action="{{ url_for('suggestions.delete_suggestion', suggestion_id=suggestion.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Supprimer cette suggestion ?')">[Supprimer]</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if suggestions.pages > 1 %}
+    <div class="pagination">
+        {% if suggestions.has_prev %}
+        <a href="{{ url_for('suggestions.list_suggestions', page=suggestions.prev_num) }}" class="pagination-link">[← Précédent]</a>
+        {% endif %}
+
+        <span class="pagination-info">Page {{ suggestions.page }} / {{ suggestions.pages }}</span>
+
+        {% if suggestions.has_next %}
+        <a href="{{ url_for('suggestions.list_suggestions', page=suggestions.next_num) }}" class="pagination-link">[Suivant →]</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">💡</div>
+    <h3 class="empty-title">Aucune suggestion pour le moment</h3>
+    <p class="empty-description">Vous n'avez pas encore proposé d'amélioration.</p>
+    <a href="{{ url_for('suggestions.new_suggestion') }}" class="btn-primary">[Proposer une amélioration]</a>
+</div>
+{% endif %}
+
+<style>
+.suggestions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.suggestion-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    transition: all 0.2s;
+}
+
+.suggestion-card:hover {
+    border-color: var(--accent-cyan);
+    transform: translateX(5px);
+}
+
+.suggestion-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.suggestion-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+}
+
+.suggestion-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    font-family: 'Fira Code', monospace;
+}
+
+.status-pending { background: #fbbf24; color: #1a1a2e; }
+.status-reviewed { background: #3b82f6; color: white; }
+.status-accepted { background: #10b981; color: white; }
+.status-rejected { background: #ef4444; color: white; }
+.status-implemented { background: #8b5cf6; color: white; }
+
+.suggestion-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.suggestion-category,
+.suggestion-priority {
+    font-family: 'Fira Code', monospace;
+}
+
+.suggestion-description {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.admin-response {
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--accent-cyan);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.25rem;
+}
+
+.admin-response-label {
+    font-weight: 600;
+    color: var(--accent-cyan);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.admin-response-text {
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.suggestion-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.empty-title {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-description {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+</style>
+{% endblock %}

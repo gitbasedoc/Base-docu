@@ -84,6 +84,28 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    <!-- Footer -->
+    {% if current_user.is_authenticated %}
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="{{ url_for('suggestions.new_suggestion') }}" class="footer-link suggestion-link">
+                    💡 Proposer une amélioration
+                </a>
+                <span class="footer-separator">|</span>
+                <a href="{{ url_for('suggestions.list_suggestions') }}" class="footer-link">
+                    Mes suggestions
+                </a>
+            </div>
+            <div class="footer-info">
+                <span class="footer-version">{{ app_name }} v{{ version }}</span>
+                <span class="footer-separator">•</span>
+                <span class="footer-company">{{ company_name }}</span>
+            </div>
+        </div>
+    </footer>
+    {% endif %}
     {% endblock %}
 
     <!-- JavaScript -->

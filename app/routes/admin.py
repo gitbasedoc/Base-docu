@@ -7,7 +7,8 @@ from flask_login import login_required, current_user
 from functools import wraps
 
 from app import db
-from app.models import User, Category, Setting, ActionLog, Procedure, Script, FAQ, Software, Favorite
+from app.models import User, Category, Setting, ActionLog, Procedure, Script, FAQ, Software, Favorite, Suggestion
+from app.utils.audit_logger import log_action
 from sqlalchemy import func
 from datetime import datetime, timedelta
 
@@ -203,6 +204,48 @@ def toggle_user_admin(user_id):
     return redirect(url_for('admin.list_users'))
 
 
+@admin_bp.route('/users/<int:user_id>/change-role', methods=['POST'])
+@login_required
+@admin_required
+def change_user_role(user_id):
+    """
+    Changer le rôle d'un utilisateur
+    """
+    user = User.query.get_or_404(user_id)
+
+    if user.id == current_user.id:
+        flash('Vous ne pouvez pas modifier votre propre rôle', 'error')
+        return redirect(url_for('admin.list_users'))
+
+    new_role = request.form.get('role', 'viewer')
+
+    # Valider que le rôle est valide
+    if new_role not in ['viewer', 'contributor', 'admin']:
+        flash('Rôle invalide', 'error')
+        return redirect(url_for('admin.list_users'))
+
+    old_role = user.role
+    user.role = new_role
+
+    # Synchroniser is_admin avec le nouveau rôle
+    user.is_admin = (new_role == 'admin')
+
+    db.session.commit()
+
+    role_labels = {
+        'viewer': '👁️ Viewer',
+        'contributor': '✍️ Contributor',
+        'admin': '👑 Admin'
+    }
+
+    flash(f'Rôle de {user.full_name} modifié: {role_labels[old_role]} → {role_labels[new_role]}', 'success')
+
+    # Log l'action
+    log_action('user_role_changed', user_id=user.id, details=f'Rôle modifié de {old_role} à {new_role}')
+
+    return redirect(url_for('admin.list_users'))
+
+
 @admin_bp.route('/categories')
 @login_required
 @admin_required
@@ -383,3 +426,74 @@ def audit_logs():
                          action_type_filter=action_type,
                          entity_type_filter=entity_type,
                          user_id_filter=user_id)
+
+
+@admin_bp.route('/suggestions')
+@login_required
+@admin_required
+def manage_suggestions():
+    """
+    Gérer toutes les suggestions (admin)
+    """
+    # Filtres
+    status_filter = request.args.get('status')
+    category_filter = request.args.get('category')
+    page = request.args.get('page', 1, type=int)
+    per_page = 30
+
+    # Construire la requête
+    query = Suggestion.query
+
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+
+    if category_filter:
+        query = query.filter_by(category=category_filter)
+
+    # Paginer
+    pagination = query.order_by(Suggestion.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    suggestions = pagination.items
+
+    # Statistiques
+    stats = {
+        'total': Suggestion.query.count(),
+        'pending': Suggestion.query.filter_by(status='pending').count(),
+        'reviewed': Suggestion.query.filter_by(status='reviewed').count(),
+        'accepted': Suggestion.query.filter_by(status='accepted').count(),
+        'rejected': Suggestion.query.filter_by(status='rejected').count(),
+        'implemented': Suggestion.query.filter_by(status='implemented').count(),
+    }
+
+    return render_template('admin/suggestions.html',
+                         suggestions=suggestions,
+                         pagination=pagination,
+                         stats=stats,
+                         status_filter=status_filter,
+                         category_filter=category_filter)
+
+
+@admin_bp.route('/suggestions/<int:suggestion_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_suggestion(suggestion_id):
+    """
+    Mettre à jour une suggestion (statut, priorité, réponse admin)
+    """
+    suggestion = Suggestion.query.get_or_404(suggestion_id)
+
+    old_status = suggestion.status
+    suggestion.status = request.form.get('status', suggestion.status)
+    suggestion.priority = request.form.get('priority', suggestion.priority)
+    suggestion.admin_response = request.form.get('admin_response', suggestion.admin_response)
+
+    db.session.commit()
+
+    # Log l'action
+    log_action('suggestion_updated', user_id=current_user.id,
+               details=f'Suggestion #{suggestion_id} mise à jour: {old_status} → {suggestion.status}')
+
+    flash('Suggestion mise à jour', 'success')
+    return redirect(url_for('admin.manage_suggestions'))

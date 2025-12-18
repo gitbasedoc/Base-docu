@@ -66,6 +66,48 @@
     </div>
 
     <div class="section">
+        <h3 class="section-title">👥 Inscription des utilisateurs</h3>
+
+        <div class="form-group">
+            <label class="form-label">
+                <input type="checkbox"
+                       name="allow_self_registration"
+                       value="true"
+                       {% if settings.get('allow_self_registration', 'true') == 'true' %}checked{% endif %}>
+                Autoriser l'auto-inscription des nouveaux utilisateurs
+            </label>
+            <div class="form-help">Si désactivé, seuls les administrateurs peuvent créer des comptes</div>
+        </div>
+
+        <div class="form-group">
+            <label for="allowed_email_domains" class="form-label">Domaines email autorisés (optionnel)</label>
+            <input type="text"
+                   id="allowed_email_domains"
+                   name="allowed_email_domains"
+                   class="form-input"
+                   value="{{ settings.get('allowed_email_domains', '') }}"
+                   placeholder="basedoc.fr, gagneraud.fr">
+            <div class="form-help">
+                Seules les adresses email de ces domaines pourront s'inscrire.<br>
+                Séparez plusieurs domaines par des virgules. Laissez vide pour autoriser tous les domaines.
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="default_user_role" class="form-label">Rôle par défaut pour les nouveaux utilisateurs</label>
+            <select id="default_user_role" name="default_user_role" class="form-select">
+                <option value="viewer" {% if settings.get('default_user_role', 'viewer') == 'viewer' %}selected{% endif %}>
+                    👁️ Viewer (lecture seule)
+                </option>
+                <option value="contributor" {% if settings.get('default_user_role') == 'contributor' %}selected{% endif %}>
+                    ✍️ Contributor (peut créer et modifier)
+                </option>
+            </select>
+            <div class="form-help">Le rôle admin ne peut être assigné que manuellement</div>
+        </div>
+    </div>
+
+    <div class="section">
         <h3 class="section-title">📁 Fichiers</h3>
 
         <div class="form-group">

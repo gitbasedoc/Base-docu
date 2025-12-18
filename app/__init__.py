@@ -74,6 +74,7 @@ def create_app(config_name=None):
         from app.routes.scripts import scripts_bp
         from app.routes.faq import faq_bp
         from app.routes.software import software_bp
+        from app.routes.suggestions import suggestions_bp
 
         app.register_blueprint(auth_bp)
         app.register_blueprint(procedures_bp)
@@ -85,6 +86,7 @@ def create_app(config_name=None):
         app.register_blueprint(scripts_bp)
         app.register_blueprint(faq_bp)
         app.register_blueprint(software_bp)
+        app.register_blueprint(suggestions_bp)
 
         # Route pour servir les fichiers uploadés
         from flask import send_from_directory

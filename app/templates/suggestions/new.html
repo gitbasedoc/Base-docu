@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Proposer une amélioration - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb">
+            <a href="{{ url_for('procedures.home') }}">[Home]</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="{{ url_for('suggestions.list_suggestions') }}">[Suggestions]</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>[Nouvelle]</span>
+        </div>
+        <h2 class="page-title">// Proposer une amélioration</h2>
+    </div>
+</div>
+
+<div class="section" style="max-width: 800px;">
+    <div class="suggestion-intro">
+        <p class="intro-text">
+            💡 Vous avez une idée pour améliorer l'application ? Une fonctionnalité manquante ? Un bug à signaler ?
+        </p>
+        <p class="intro-text">
+            Partagez votre suggestion et aidez-nous à améliorer <strong>{{ app_name }}</strong> !
+        </p>
+    </div>
+
+    <form method="POST" class="suggestion-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+        <div class="form-group">
+            <label for="category" class="form-label">Type de suggestion *</label>
+            <select id="category" name="category" class="form-select" required>
+                <option value="">-- Sélectionnez un type --</option>
+                <option value="feature">🚀 Nouvelle fonctionnalité</option>
+                <option value="improvement">⚡ Amélioration d'une fonctionnalité existante</option>
+                <option value="bug">🐛 Signalement de bug</option>
+                <option value="other">💡 Autre</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="title" class="form-label">Titre de la suggestion *</label>
+            <input type="text"
+                   id="title"
+                   name="title"
+                   class="form-input"
+                   placeholder="Ex: Ajouter une fonctionnalité d'export Excel"
+                   required
+                   minlength="10"
+                   maxlength="255">
+            <div class="form-help">Minimum 10 caractères</div>
+        </div>
+
+        <div class="form-group">
+            <label for="description" class="form-label">Description détaillée *</label>
+            <textarea id="description"
+                      name="description"
+                      class="form-textarea"
+                      rows="10"
+                      placeholder="Décrivez votre suggestion en détail:&#10;- Qu'est-ce que vous aimeriez voir ?&#10;- Pourquoi est-ce utile ?&#10;- Comment devrait-ce fonctionner ?&#10;&#10;Pour un bug, précisez:&#10;- Les étapes pour reproduire le problème&#10;- Le comportement attendu vs le comportement actuel"
+                      required
+                      minlength="20"></textarea>
+            <div class="form-help">Minimum 20 caractères. Plus c'est détaillé, mieux c'est !</div>
+        </div>
+
+        <div class="form-actions">
+            <a href="{{ url_for('suggestions.list_suggestions') }}" class="btn-secondary">[Annuler]</a>
+            <button type="submit" class="btn-primary">[Envoyer la suggestion]</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.suggestion-intro {
+    background: var(--surface-color);
+    border: 1px solid var(--accent-cyan);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.intro-text {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+.intro-text:last-child {
+    margin-bottom: 0;
+}
+
+.suggestion-form {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 2rem;
+}
+
+.form-textarea {
+    width: 100%;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.1);
+}
+
+.form-textarea::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+</style>
+
+<script>
+// Auto-resize textarea
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('description');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    }
+});
+</script>
+{% endblock %}

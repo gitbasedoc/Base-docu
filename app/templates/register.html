@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - KB Support Basedoc</title>
+    <title>Inscription - KB Support Basedoc</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dark_theme.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -14,7 +14,7 @@
                 <div class="terminal-cursor">&gt;_</div>
                 <h1 class="login-title">KB_SUPPORT_BASEDOC</h1>
             </div>
-            <p class="login-subtitle">Base de Connaissances IT</p>
+            <p class="login-subtitle">Créer un compte</p>
             <p class="login-company">{{ company_name }}</p>
         </div>
 
@@ -35,52 +35,73 @@
 
         <form method="POST" class="login-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+            <div class="form-group">
+                <label for="full_name" class="form-label">
+                    <span class="terminal-prompt">&gt;</span> Nom complet
+                </label>
+                <input type="text"
+                       id="full_name"
+                       name="full_name"
+                       class="form-input"
+                       placeholder="Jean Dupont"
+                       required
+                       autofocus>
+            </div>
+
             <div class="form-group">
                 <label for="email" class="form-label">
-                    <span class="terminal-prompt">&gt;</span> Email
+                    <span class="terminal-prompt">&gt;</span> Email professionnel
                 </label>
                 <input type="email"
                        id="email"
                        name="email"
                        class="form-input"
                        placeholder="user@domain.com"
-                       required
-                       autofocus>
+                       required>
             </div>
 
             <div class="form-group">
                 <label for="password" class="form-label">
-                    <span class="terminal-prompt">&gt;</span> Password
+                    <span class="terminal-prompt">&gt;</span> Mot de passe
                 </label>
                 <input type="password"
                        id="password"
                        name="password"
                        class="form-input"
                        placeholder="••••••••"
+                       minlength="8"
+                       required>
+                <small style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-top: 0.25rem;">
+                    Minimum 8 caractères
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="password_confirm" class="form-label">
+                    <span class="terminal-prompt">&gt;</span> Confirmer le mot de passe
+                </label>
+                <input type="password"
+                       id="password_confirm"
+                       name="password_confirm"
+                       class="form-input"
+                       placeholder="••••••••"
+                       minlength="8"
                        required>
             </div>
 
-            <div class="form-group form-checkbox">
-                <label for="remember" class="checkbox-label">
-                    <input type="checkbox" id="remember" name="remember" class="form-checkbox-input">
-                    <span class="checkbox-text">Remember me</span>
-                </label>
-            </div>
-
             <button type="submit" class="btn-login">
-                [SE CONNECTER]
+                [CRÉER MON COMPTE]
             </button>
         </form>
 
         <div class="login-footer">
-            {% if allow_registration %}
             <p class="login-footer-text" style="margin-bottom: 0.5rem;">
-                Pas encore de compte ?
-                <a href="{{ url_for('auth.register') }}" style="color: var(--accent-cyan); text-decoration: none;">
-                    [Créer un compte]
+                Vous avez déjà un compte ?
+                <a href="{{ url_for('auth.login') }}" style="color: var(--accent-cyan); text-decoration: none;">
+                    [Se connecter]
                 </a>
             </p>
-            {% endif %}
             <p class="login-footer-text">
                 <span class="terminal-prompt">#</span>
                 Version {{ version }} | {{ company_name }}
@@ -100,8 +121,8 @@
     </div>
 
     <script>
-        // Auto-focus sur email
-        document.getElementById('email').focus();
+        // Auto-focus sur full_name
+        document.getElementById('full_name').focus();
 
         // Animation code rain (simple)
         document.addEventListener('DOMContentLoaded', function() {
@@ -113,6 +134,26 @@
                         char.textContent = Math.random() > 0.5 ? '1' : '0';
                     });
                 }, 500);
+            }
+        });
+
+        // Validation en temps réel des mots de passe
+        const password = document.getElementById('password');
+        const passwordConfirm = document.getElementById('password_confirm');
+
+        passwordConfirm.addEventListener('input', function() {
+            if (password.value !== passwordConfirm.value) {
+                passwordConfirm.setCustomValidity('Les mots de passe ne correspondent pas');
+            } else {
+                passwordConfirm.setCustomValidity('');
+            }
+        });
+
+        password.addEventListener('input', function() {
+            if (passwordConfirm.value && password.value !== passwordConfirm.value) {
+                passwordConfirm.setCustomValidity('Les mots de passe ne correspondent pas');
+            } else {
+                passwordConfirm.setCustomValidity('');
             }
         });
     </script>

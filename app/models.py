@@ -41,7 +41,8 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     full_name = db.Column(db.String(255), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
+    role = db.Column(db.String(20), default='viewer', nullable=False, index=True)  # viewer, contributor, admin
+    is_admin = db.Column(db.Boolean, default=False)  # Deprecated, use role instead
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
@@ -70,6 +71,45 @@ class User(UserMixin, db.Model):
             True si correct, False sinon
         """
         return check_password_hash(self.password_hash, password)
+
+    def has_permission(self, permission):
+        """
+        Vérifie si l'utilisateur a une permission donnée
+
+        Args:
+            permission: Type de permission (view, create, edit, delete, admin)
+
+        Returns:
+            True si autorisé, False sinon
+        """
+        role_permissions = {
+            'viewer': ['view'],
+            'contributor': ['view', 'create', 'edit'],
+            'admin': ['view', 'create', 'edit', 'delete', 'admin']
+        }
+
+        # Synchroniser is_admin avec role
+        if self.is_admin and self.role != 'admin':
+            self.role = 'admin'
+
+        return permission in role_permissions.get(self.role, [])
+
+    def can_create(self):
+        """Peut créer du contenu"""
+        return self.role in ['contributor', 'admin']
+
+    def can_edit(self, content_creator_id=None):
+        """Peut modifier du contenu"""
+        if self.role == 'admin':
+            return True
+        if self.role == 'contributor':
+            # Un contributeur peut modifier son propre contenu ou tout contenu si content_creator_id est None
+            return content_creator_id is None or content_creator_id == self.id
+        return False
+
+    def can_delete(self):
+        """Peut supprimer du contenu"""
+        return self.role == 'admin'
 
     def __repr__(self):
         return f'<User {self.email}>'
@@ -618,3 +658,56 @@ class Favorite(db.Model):
 
     def __repr__(self):
         return f'<Favorite user={self.user_id} procedure={self.procedure_id}>'
+
+
+class Suggestion(db.Model):
+    """Modèle Suggestion - Propositions d'amélioration de l'application"""
+
+    __tablename__ = 'suggestions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True, index=True)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(50), nullable=False, index=True)  # feature, bug, improvement, other
+    status = db.Column(db.String(20), default='pending', nullable=False, index=True)  # pending, reviewed, accepted, rejected, implemented
+    admin_response = db.Column(db.Text)
+    priority = db.Column(db.String(20))  # low, medium, high
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations
+    user = db.relationship('User', backref=db.backref('suggestions', lazy='dynamic'))
+
+    def get_status_label(self):
+        """Retourne le label du statut en français"""
+        labels = {
+            'pending': '⏳ En attente',
+            'reviewed': '👀 En révision',
+            'accepted': '✅ Acceptée',
+            'rejected': '❌ Refusée',
+            'implemented': '🎉 Implémentée'
+        }
+        return labels.get(self.status, self.status)
+
+    def get_category_label(self):
+        """Retourne le label de la catégorie en français"""
+        labels = {
+            'feature': '🚀 Nouvelle fonctionnalité',
+            'bug': '🐛 Correction de bug',
+            'improvement': '⚡ Amélioration',
+            'other': '💡 Autre'
+        }
+        return labels.get(self.category, self.category)
+
+    def get_priority_label(self):
+        """Retourne le label de priorité"""
+        labels = {
+            'low': '🔵 Basse',
+            'medium': '🟡 Moyenne',
+            'high': '🔴 Haute'
+        }
+        return labels.get(self.priority, '-')
+
+    def __repr__(self):
+        return f'<Suggestion #{self.id}: {self.title[:30]}...>'

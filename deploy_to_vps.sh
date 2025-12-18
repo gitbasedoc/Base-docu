@@ -62,6 +62,8 @@ migrations=(
     "add_fulltext_search_to_procedures.sql:Recherche FTS"
     "add_views_count_to_procedures.sql:Compteur vues"
     "create_favorites_table.sql:Favoris"
+    "add_role_to_users.sql:Rôles utilisateurs"
+    "create_suggestions_table.sql:Suggestions"
 )
 
 for migration in "${migrations[@]}"; do
@@ -97,14 +99,14 @@ step "7/7 Vérification finale"
 # Vérifier tables
 TABLES_COUNT=$(sudo -u postgres psql -d "$DB_NAME" -t -c "
     SELECT COUNT(*) FROM information_schema.tables
-    WHERE table_name IN ('action_logs', 'comments', 'favorites')
+    WHERE table_name IN ('action_logs', 'comments', 'favorites', 'suggestions')
     AND table_schema = 'public';
 " | tr -d ' ')
 
-if [ "$TABLES_COUNT" -eq 3 ]; then
-    success "Tables créées (action_logs, comments, favorites)"
+if [ "$TABLES_COUNT" -eq 4 ]; then
+    success "Tables créées (action_logs, comments, favorites, suggestions)"
 else
-    echo "  ⚠ Certaines tables manquantes ($TABLES_COUNT/3)"
+    echo "  ⚠ Certaines tables manquantes ($TABLES_COUNT/4)"
 fi
 
 # Vérifier colonne views_count
@@ -131,6 +133,18 @@ else
     echo "  ⚠ Colonne search_vector manquante"
 fi
 
+# Vérifier colonne role
+ROLE_COLUMN=$(sudo -u postgres psql -d "$DB_NAME" -t -c "
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'role';
+" | tr -d ' ')
+
+if [ "$ROLE_COLUMN" -eq 1 ]; then
+    success "Colonne role créée"
+else
+    echo "  ⚠ Colonne role manquante"
+fi
+
 echo -e "\n${GREEN}═══════════════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}  ✓ Déploiement terminé avec succès !${NC}"
 echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}\n"
@@ -147,6 +161,8 @@ echo "  8. ✓ Table des matières automatique"
 echo "  9. ✓ Saisie prédictive dans la recherche"
 echo " 10. ✓ Dashboard statistiques administrateur"
 echo " 11. ✓ Fix sauvegarde procédures/FAQs (TinyMCE sync)"
+echo " 12. ✓ Système de rôles (viewer, contributor, admin)"
+echo " 13. ✓ Système de suggestions d'amélioration"
 
 echo -e "\n${YELLOW}Vérification :${NC}"
 echo "  Logs: sudo journalctl -u $SERVICE_NAME -n 50"
