@@ -7,7 +7,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 
 from app import db
-from app.models import Procedure, Category, Tag, ActionLog, Comment
+from app.models import Procedure, Category, Tag, ActionLog, Comment, Favorite
 from app.services.file_service import FileService
 from app.services.export_service import ExportService
 
@@ -26,15 +26,25 @@ def home():
         .limit(10)\
         .all()
 
+    # Récupérer les favoris de l'utilisateur
+    favorite_procedures = db.session.query(Procedure)\
+        .join(Favorite, Favorite.procedure_id == Procedure.id)\
+        .filter(Favorite.user_id == current_user.id)\
+        .filter(Procedure.is_archived == False)\
+        .order_by(Favorite.created_at.desc())\
+        .limit(5)\
+        .all()
+
     # Statistiques
     stats = {
         'total_procedures': Procedure.query.filter_by(is_archived=False).count(),
         'total_categories': Category.query.count(),
         'total_tags': Tag.query.count(),
-        'my_procedures': Procedure.query.filter_by(created_by=current_user.id, is_archived=False).count()
+        'my_procedures': Procedure.query.filter_by(created_by=current_user.id, is_archived=False).count(),
+        'favorite_count': Favorite.query.filter_by(user_id=current_user.id).count()
     }
 
-    return render_template('home.html', recent_procedures=recent_procedures, stats=stats)
+    return render_template('home.html', recent_procedures=recent_procedures, favorite_procedures=favorite_procedures, stats=stats)
 
 
 @procedures_bp.route('/procedures')
@@ -93,6 +103,13 @@ def view_procedure(procedure_id):
     """
     procedure = Procedure.query.get_or_404(procedure_id)
 
+    # Incrémenter le compteur de vues
+    procedure.increment_view()
+    db.session.commit()
+
+    # Vérifier si la procédure est en favoris
+    is_favorited = Favorite.is_favorited(current_user.id, procedure.id)
+
     # Récupérer les versions
     versions = procedure.versions.limit(10).all()
 
@@ -106,7 +123,8 @@ def view_procedure(procedure_id):
         'procedures/detail.html',
         procedure=procedure,
         versions=versions,
-        comments=comments
+        comments=comments,
+        is_favorited=is_favorited
     )
 
 
@@ -584,3 +602,34 @@ def export_docx(procedure_id):
     except Exception as e:
         flash(f'Erreur lors de la génération du DOCX: {str(e)}', 'error')
         return redirect(url_for('procedures.view_procedure', procedure_id=procedure_id))
+
+
+@procedures_bp.route('/procedures/<int:procedure_id>/favorite', methods=['POST'])
+@login_required
+def toggle_favorite(procedure_id):
+    """
+    Ajouter ou retirer une procédure des favoris (AJAX)
+    """
+    from flask import jsonify
+
+    procedure = Procedure.query.get_or_404(procedure_id)
+
+    # Toggle favorite
+    added, favorite = Favorite.toggle(current_user.id, procedure.id)
+
+    # Audit log
+    ActionLog.log_action(
+        action_type='favorite' if added else 'unfavorite',
+        entity_type='procedure',
+        entity_id=procedure.id,
+        entity_name=procedure.title,
+        user_id=current_user.id,
+        request_obj=request
+    )
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'favorited': added
+    })

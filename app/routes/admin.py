@@ -7,7 +7,9 @@ from flask_login import login_required, current_user
 from functools import wraps
 
 from app import db
-from app.models import User, Category, Setting, ActionLog, Procedure
+from app.models import User, Category, Setting, ActionLog, Procedure, Script, FAQ, Software, Favorite
+from sqlalchemy import func
+from datetime import datetime, timedelta
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -30,19 +32,95 @@ def admin_required(f):
 @admin_required
 def dashboard():
     """
-    Tableau de bord administration
+    Tableau de bord administration avec statistiques complètes
     """
-    # Statistiques
+    # Statistiques utilisateurs
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
     admin_users = User.query.filter_by(is_admin=True).count()
+
+    # Statistiques contenu
+    total_procedures = Procedure.query.filter_by(is_archived=False).count()
+    archived_procedures = Procedure.query.filter_by(is_archived=True).count()
+    total_scripts = Script.query.filter_by(status='published').count()
+    total_faqs = FAQ.query.filter_by(is_published=True).count()
+    total_software = Software.query.count()
     total_categories = Category.query.count()
 
+    # Statistiques d'engagement
+    total_views = db.session.query(func.sum(Procedure.views_count)).scalar() or 0
+    total_likes = db.session.query(func.sum(Procedure.useful_count)).scalar() or 0
+    total_favorites = Favorite.query.count()
+
+    # Top 5 procédures par vues
+    top_viewed = Procedure.query.filter_by(is_archived=False)\
+        .order_by(Procedure.views_count.desc())\
+        .limit(5)\
+        .all()
+
+    # Top 5 procédures par likes
+    top_liked = Procedure.query.filter_by(is_archived=False)\
+        .order_by(Procedure.useful_count.desc())\
+        .limit(5)\
+        .all()
+
+    # Top 5 procédures les plus favoritées
+    top_favorited = db.session.query(
+        Procedure,
+        func.count(Favorite.id).label('favorite_count')
+    ).join(Favorite, Favorite.procedure_id == Procedure.id)\
+     .filter(Procedure.is_archived == False)\
+     .group_by(Procedure.id)\
+     .order_by(func.count(Favorite.id).desc())\
+     .limit(5)\
+     .all()
+
+    # Activité récente (7 derniers jours)
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    recent_actions = ActionLog.query.filter(
+        ActionLog.created_at >= week_ago
+    ).count()
+
+    # Actions par type
+    actions_by_type = db.session.query(
+        ActionLog.action_type,
+        func.count(ActionLog.id).label('count')
+    ).group_by(ActionLog.action_type).all()
+
+    # Utilisateurs les plus actifs
+    top_contributors = db.session.query(
+        User,
+        func.count(Procedure.id).label('procedure_count')
+    ).join(Procedure, Procedure.created_by == User.id)\
+     .group_by(User.id)\
+     .order_by(func.count(Procedure.id).desc())\
+     .limit(5)\
+     .all()
+
     return render_template('admin/dashboard.html',
+                         # Utilisateurs
                          total_users=total_users,
                          active_users=active_users,
                          admin_users=admin_users,
-                         total_categories=total_categories)
+                         # Contenu
+                         total_procedures=total_procedures,
+                         archived_procedures=archived_procedures,
+                         total_scripts=total_scripts,
+                         total_faqs=total_faqs,
+                         total_software=total_software,
+                         total_categories=total_categories,
+                         # Engagement
+                         total_views=total_views,
+                         total_likes=total_likes,
+                         total_favorites=total_favorites,
+                         # Tops
+                         top_viewed=top_viewed,
+                         top_liked=top_liked,
+                         top_favorited=top_favorited,
+                         top_contributors=top_contributors,
+                         # Activité
+                         recent_actions=recent_actions,
+                         actions_by_type=actions_by_type)
 
 
 @admin_bp.route('/users')

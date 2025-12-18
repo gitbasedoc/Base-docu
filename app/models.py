@@ -123,6 +123,7 @@ class Procedure(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_archived = db.Column(db.Boolean, default=False, index=True)
     useful_count = db.Column(db.Integer, default=0)  # Compteur de votes "utile"
+    views_count = db.Column(db.Integer, default=0)  # Compteur de vues
     search_vector = db.Column(db.Text)  # TSVector pour recherche plein texte PostgreSQL
 
     # Relations
@@ -161,6 +162,10 @@ class Procedure(db.Model):
     def increment_useful(self):
         """Incrémente le compteur 'utile'"""
         self.useful_count += 1
+
+    def increment_view(self):
+        """Incrémente le compteur de vues"""
+        self.views_count += 1
 
     def __repr__(self):
         return f'<Procedure {self.id}: {self.title[:30]}...>'
@@ -551,3 +556,65 @@ class Comment(db.Model):
 
     def __repr__(self):
         return f'<Comment #{self.id} on Procedure #{self.procedure_id}>'
+
+
+class Favorite(db.Model):
+    """Modèle Favori - Bookmarks utilisateur pour procédures"""
+
+    __tablename__ = 'favorites'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    procedure_id = db.Column(db.Integer, db.ForeignKey('procedures.id', ondelete='CASCADE'), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    # Relations
+    user = db.relationship('User', backref=db.backref('favorites', lazy='dynamic', cascade='all, delete-orphan'))
+    procedure = db.relationship('Procedure', backref=db.backref('favorited_by', lazy='dynamic'))
+
+    # Contrainte d'unicité: un utilisateur ne peut mettre une procédure en favori qu'une seule fois
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'procedure_id', name='unique_user_procedure_favorite'),
+        db.Index('idx_user_created', 'user_id', 'created_at'),
+    )
+
+    @classmethod
+    def is_favorited(cls, user_id, procedure_id):
+        """
+        Vérifie si une procédure est en favori pour un utilisateur
+
+        Args:
+            user_id: ID de l'utilisateur
+            procedure_id: ID de la procédure
+
+        Returns:
+            True si favoris, False sinon
+        """
+        return cls.query.filter_by(user_id=user_id, procedure_id=procedure_id).first() is not None
+
+    @classmethod
+    def toggle(cls, user_id, procedure_id):
+        """
+        Ajoute ou retire une procédure des favoris
+
+        Args:
+            user_id: ID de l'utilisateur
+            procedure_id: ID de la procédure
+
+        Returns:
+            Tuple (added: bool, favorite: Favorite or None)
+        """
+        favorite = cls.query.filter_by(user_id=user_id, procedure_id=procedure_id).first()
+
+        if favorite:
+            # Retirer des favoris
+            db.session.delete(favorite)
+            return (False, None)
+        else:
+            # Ajouter aux favoris
+            favorite = cls(user_id=user_id, procedure_id=procedure_id)
+            db.session.add(favorite)
+            return (True, favorite)
+
+    def __repr__(self):
+        return f'<Favorite user={self.user_id} procedure={self.procedure_id}>'

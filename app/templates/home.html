@@ -54,6 +54,35 @@
     </div>
 </div>
 
+<!-- Section Favoris -->
+{% if favorite_procedures %}
+<div class="favorites-section">
+    <div class="section-header">
+        <h3 class="section-title">⭐ Mes Favoris ({{ stats.favorite_count }})</h3>
+        <a href="{{ url_for('procedures.list_procedures') }}" class="btn-view-all">[Voir tout]</a>
+    </div>
+    <div class="favorites-grid">
+        {% for procedure in favorite_procedures %}
+        <div class="favorite-card">
+            <div class="favorite-header">
+                <a href="{{ url_for('procedures.view_procedure', procedure_id=procedure.id) }}" class="favorite-title">
+                    [PROC-{{ "%04d"|format(procedure.id) }}] {{ procedure.title }}
+                </a>
+            </div>
+            {% if procedure.description %}
+            <div class="favorite-description">{{ procedure.description[:100] }}{% if procedure.description|length > 100 %}...{% endif %}</div>
+            {% endif %}
+            <div class="favorite-meta">
+                <span class="meta-item">📁 {{ procedure.category.name }}</span>
+                <span class="meta-item">👁️ {{ procedure.views_count }} vues</span>
+                <span class="meta-item">👍 {{ procedure.useful_count }} utile</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Section de contenu dynamique -->
 <div id="dynamic-content" class="dynamic-content-section" style="display: none;">
     <div class="content-header">
@@ -68,6 +97,110 @@
 
 {% block extra_css %}
 <style>
+/* Section Favoris */
+.favorites-section {
+    max-width: 1200px;
+    margin: 0 auto 40px auto;
+    padding: 20px;
+    background: var(--bg-secondary, #0f1729);
+    border: 2px solid var(--accent-yellow, #fde047);
+    border-radius: 8px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent-yellow, #fde047);
+}
+
+.section-title {
+    font-size: 1.5rem;
+    color: var(--accent-yellow, #fde047);
+    margin: 0;
+    font-family: 'Fira Code', monospace;
+}
+
+.btn-view-all {
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--accent-cyan, #06b6d4);
+    border: 1px solid var(--accent-cyan, #06b6d4);
+    border-radius: 4px;
+    text-decoration: none;
+    font-family: 'Fira Code', monospace;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-view-all:hover {
+    background: var(--accent-cyan, #06b6d4);
+    color: var(--bg-primary, #1f2937);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+.favorites-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.favorite-card {
+    background: var(--bg-cards, #374151);
+    border: 1px solid var(--border-color, #2a3f5f);
+    border-radius: 6px;
+    padding: 15px;
+    transition: all 0.3s ease;
+}
+
+.favorite-card:hover {
+    border-color: var(--accent-yellow, #fde047);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(253, 224, 71, 0.15);
+}
+
+.favorite-header {
+    margin-bottom: 10px;
+}
+
+.favorite-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent-cyan, #06b6d4);
+    text-decoration: none;
+    display: block;
+    font-family: 'Fira Code', monospace;
+}
+
+.favorite-title:hover {
+    color: var(--accent-yellow, #fde047);
+    text-decoration: underline;
+}
+
+.favorite-description {
+    color: var(--text-secondary, #a0a0a0);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.favorite-meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .quick-nav-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

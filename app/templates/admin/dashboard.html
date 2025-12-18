@@ -7,38 +7,192 @@
     <h2 class="page-title">// Administration</h2>
 </div>
 
-<!-- Statistiques -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon">👥</div>
-        <div class="stat-content">
-            <div class="stat-value">{{ total_users }}</div>
-            <div class="stat-label">Utilisateurs</div>
+<!-- Statistiques Utilisateurs -->
+<div class="section">
+    <h3 class="section-title">👥 Utilisateurs</h3>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_users }}</div>
+                <div class="stat-label">Total</div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-success">
+            <div class="stat-icon">✓</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ active_users }}</div>
+                <div class="stat-label">Actifs</div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-highlight">
+            <div class="stat-icon">👑</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ admin_users }}</div>
+                <div class="stat-label">Administrateurs</div>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="stat-card stat-card-success">
-        <div class="stat-icon">✓</div>
-        <div class="stat-content">
-            <div class="stat-value">{{ active_users }}</div>
-            <div class="stat-label">Actifs</div>
+<!-- Statistiques Contenu -->
+<div class="section">
+    <h3 class="section-title">📚 Contenu</h3>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📚</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_procedures }}</div>
+                <div class="stat-label">Procédures actives</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📜</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_scripts }}</div>
+                <div class="stat-label">Scripts</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">❓</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_faqs }}</div>
+                <div class="stat-label">FAQ</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">💻</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_software }}</div>
+                <div class="stat-label">Logiciels</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📁</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_categories }}</div>
+                <div class="stat-label">Catégories</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🗄️</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ archived_procedures }}</div>
+                <div class="stat-label">Archivées</div>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="stat-card stat-card-highlight">
-        <div class="stat-icon">👑</div>
-        <div class="stat-content">
-            <div class="stat-value">{{ admin_users }}</div>
-            <div class="stat-label">Administrateurs</div>
+<!-- Statistiques d'engagement -->
+<div class="section">
+    <h3 class="section-title">📊 Engagement</h3>
+    <div class="stats-grid">
+        <div class="stat-card stat-card-info">
+            <div class="stat-icon">👁️</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ "{:,}".format(total_views) }}</div>
+                <div class="stat-label">Vues totales</div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-success">
+            <div class="stat-icon">👍</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_likes }}</div>
+                <div class="stat-label">Votes utiles</div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-highlight">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_favorites }}</div>
+                <div class="stat-label">Favoris</div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-warning">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ recent_actions }}</div>
+                <div class="stat-label">Actions (7j)</div>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="stat-card">
-        <div class="stat-icon">📁</div>
-        <div class="stat-content">
-            <div class="stat-value">{{ total_categories }}</div>
-            <div class="stat-label">Catégories</div>
+<!-- Top procédures -->
+<div class="section">
+    <h3 class="section-title">🏆 Tops Procédures</h3>
+    <div class="top-lists-grid">
+        <!-- Top vues -->
+        <div class="top-list-card">
+            <h4 class="top-list-title">👁️ Plus consultées</h4>
+            <div class="top-list">
+                {% for proc in top_viewed %}
+                <div class="top-list-item">
+                    <a href="{{ url_for('procedures.view_procedure', procedure_id=proc.id) }}" class="top-item-title">
+                        [PROC-{{ "%04d"|format(proc.id) }}] {{ proc.title }}
+                    </a>
+                    <span class="top-item-stat">{{ proc.views_count }} vues</span>
+                </div>
+                {% endfor %}
+                {% if not top_viewed %}
+                <p class="empty-message">Aucune donnée disponible</p>
+                {% endif %}
+            </div>
         </div>
+
+        <!-- Top likes -->
+        <div class="top-list-card">
+            <h4 class="top-list-title">👍 Plus utiles</h4>
+            <div class="top-list">
+                {% for proc in top_liked %}
+                <div class="top-list-item">
+                    <a href="{{ url_for('procedures.view_procedure', procedure_id=proc.id) }}" class="top-item-title">
+                        [PROC-{{ "%04d"|format(proc.id) }}] {{ proc.title }}
+                    </a>
+                    <span class="top-item-stat">{{ proc.useful_count }} votes</span>
+                </div>
+                {% endfor %}
+                {% if not top_liked %}
+                <p class="empty-message">Aucune donnée disponible</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Top favoris -->
+        <div class="top-list-card">
+            <h4 class="top-list-title">⭐ Plus favoritées</h4>
+            <div class="top-list">
+                {% for item in top_favorited %}
+                <div class="top-list-item">
+                    <a href="{{ url_for('procedures.view_procedure', procedure_id=item[0].id) }}" class="top-item-title">
+                        [PROC-{{ "%04d"|format(item[0].id) }}] {{ item[0].title }}
+                    </a>
+                    <span class="top-item-stat">{{ item[1] }} favoris</span>
+                </div>
+                {% endfor %}
+                {% if not top_favorited %}
+                <p class="empty-message">Aucune donnée disponible</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top contributeurs -->
+<div class="section">
+    <h3 class="section-title">👥 Top Contributeurs</h3>
+    <div class="contributors-grid">
+        {% for item in top_contributors %}
+        <div class="contributor-card">
+            <div class="contributor-name">{{ item[0].full_name }}</div>
+            <div class="contributor-email">{{ item[0].email }}</div>
+            <div class="contributor-stat">{{ item[1] }} procédure(s)</div>
+        </div>
+        {% endfor %}
+        {% if not top_contributors %}
+        <p class="empty-message">Aucun contributeur</p>
+        {% endif %}
     </div>
 </div>
 
@@ -145,6 +299,135 @@
 
 .stat-card-success .stat-icon {
     color: var(--success-color);
+}
+
+.stat-card-info {
+    border-color: var(--accent-cyan);
+}
+
+.stat-card-info .stat-icon {
+    color: var(--accent-cyan);
+}
+
+.stat-card-warning {
+    border-color: var(--accent-yellow);
+}
+
+.stat-card-warning .stat-icon {
+    color: var(--accent-yellow);
+}
+
+/* Top lists */
+.top-lists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.top-list-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+.top-list-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    margin-bottom: 1rem;
+    font-family: 'Fira Code', monospace;
+}
+
+.top-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.top-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+}
+
+.top-list-item:hover {
+    border-color: var(--accent-cyan);
+    transform: translateX(5px);
+}
+
+.top-item-title {
+    flex: 1;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.top-item-title:hover {
+    color: var(--accent-yellow);
+    text-decoration: underline;
+}
+
+.top-item-stat {
+    font-size: 0.85rem;
+    color: var(--accent-cyan);
+    font-weight: 600;
+    white-space: nowrap;
+    font-family: 'Fira Code', monospace;
+}
+
+/* Contributors */
+.contributors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.contributor-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.2s;
+}
+
+.contributor-card:hover {
+    border-color: var(--accent-cyan);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.15);
+}
+
+.contributor-name {
+    font-weight: 600;
+    color: var(--accent-cyan);
+    margin-bottom: 0.25rem;
+}
+
+.contributor-email {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.contributor-stat {
+    font-size: 0.9rem;
+    color: var(--accent-green);
+    font-weight: 600;
+    font-family: 'Fira Code', monospace;
+}
+
+.empty-message {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-secondary);
+    font-style: italic;
 }
 </style>
 {% endblock %}
