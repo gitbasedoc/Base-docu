@@ -162,7 +162,7 @@
         <button type="submit" class="btn-primary">
             {{ '💾 Enregistrer les modifications' if procedure else '➕ Créer la procédure' }}
         </button>
-        <a href="{{ url_for('procedures.view_procedure', procedure_id=procedure.id) if procedure else url_for('procedures.list_procedures') }}" class="btn-secondary">
+        <a href="{{ url_for('procedures.home') }}" class="btn-secondary">
             Annuler
         </a>
     </div>
@@ -403,12 +403,23 @@ document.addEventListener('DOMContentLoaded', function() {
         submitButton.textContent = 'Chargement de l\'éditeur...';
     }
 
+    // Flag pour éviter la double soumission
+    let formSubmitting = false;
+
     form.addEventListener('submit', function(e) {
+        // Si déjà en cours de soumission, laisser passer
+        if (formSubmitting) {
+            console.log('Formulaire déjà en cours de soumission');
+            return true;
+        }
+
+        // Empêcher la soumission par défaut pour valider d'abord
+        e.preventDefault();
+
         // Attendre que TinyMCE soit prêt
         const editor = tinymce.get('content');
 
         if (!editor) {
-            e.preventDefault();
             alert('L\'éditeur n\'est pas encore prêt. Veuillez patienter quelques secondes et réessayer.');
             return false;
         }
@@ -421,14 +432,14 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Contenu du formulaire:', content.substring(0, 200));
 
         if (!content || content === '<p></p>' || content === '<p><br></p>' || content === '') {
-            e.preventDefault();
             alert('Le contenu de la procédure est requis');
             return false;
         }
 
-        // Si tout est OK, laisser le formulaire se soumettre naturellement
+        // Si tout est OK, soumettre le formulaire
         console.log('Formulaire valide, soumission en cours...');
-        // Le formulaire se soumettra automatiquement (pas besoin de this.submit())
+        formSubmitting = true;
+        form.submit();
     });
 
     // ===========================
