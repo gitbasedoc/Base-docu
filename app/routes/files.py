@@ -71,6 +71,63 @@ def upload_image():
         return jsonify({'error': 'Erreur lors de l\'upload'}), 500
 
 
+@files_bp.route('/upload-video', methods=['POST'])
+@login_required
+def upload_video():
+    """
+    Upload de vidéo pour l'éditeur WYSIWYG
+    Supporte: mp4, webm, avi, mov, mkv, wmv
+    """
+    if 'file' not in request.files:
+        return jsonify({'error': 'Aucun fichier fourni'}), 400
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return jsonify({'error': 'Nom de fichier vide'}), 400
+
+    # Vérifier que c'est une vidéo
+    allowed_extensions = {'mp4', 'webm', 'avi', 'mov', 'mkv', 'wmv'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+
+    if file_ext not in allowed_extensions:
+        return jsonify({'error': f'Extension non autorisée. Utilisez: {", ".join(allowed_extensions)}'}), 400
+
+    # Vérifier la taille (max 50MB pour les vidéos)
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+
+    max_size = 50 * 1024 * 1024  # 50 MB
+    if file_size > max_size:
+        return jsonify({'error': 'Vidéo trop volumineuse (max 50 MB)'}), 400
+
+    try:
+        # Générer un nom de fichier unique
+        unique_filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+
+        # Créer le répertoire s'il n'existe pas
+        upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'storage'), 'videos')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Sauvegarder le fichier
+        file_path = os.path.join(upload_dir, unique_filename)
+        file.save(file_path)
+
+        # URL accessible publiquement
+        video_url = f"/uploads/videos/{unique_filename}"
+
+        return jsonify({
+            'success': True,
+            'location': video_url,
+            'filename': unique_filename
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Erreur upload vidéo: {str(e)}")
+        return jsonify({'error': 'Erreur lors de l\'upload'}), 500
+
+
 @files_bp.route('/import-document', methods=['POST'])
 @login_required
 def import_document():

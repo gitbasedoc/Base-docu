@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
              'alignleft aligncenter alignright alignjustify | ' +
              'bullist numlist outdent indent | ' +
              'forecolor backcolor | ' +
-             'table link image media | ' +
+             'table link image uploadvideo media | ' +
              'removeformat code fullscreen | help',
 
     // Configuration des images
@@ -266,6 +266,11 @@ document.addEventListener('DOMContentLoaded', function() {
             max-width: 100%;
             height: auto;
         }
+        video {
+            max-width: 100%;
+            height: auto;
+            margin: 1em 0;
+        }
         code {
             background: #2a2a3e;
             padding: 2px 6px;
@@ -297,6 +302,82 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Callback après init
     setup: function(editor) {
+        // Bouton personnalisé pour uploader des vidéos
+        editor.ui.registry.addButton('uploadvideo', {
+            text: '🎥 Vidéo',
+            tooltip: 'Insérer une vidéo',
+            onAction: function() {
+                // Créer un input file
+                const input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', 'video/mp4,video/webm,video/avi,video/mov,video/x-matroska,video/x-ms-wmv');
+
+                input.onchange = async function() {
+                    const file = this.files[0];
+                    if (!file) return;
+
+                    // Vérifier la taille (max 50MB)
+                    if (file.size > 50 * 1024 * 1024) {
+                        editor.notificationManager.open({
+                            text: 'La vidéo est trop volumineuse (max 50 MB)',
+                            type: 'error',
+                            timeout: 5000
+                        });
+                        return;
+                    }
+
+                    // Afficher notification de chargement
+                    const notification = editor.notificationManager.open({
+                        text: 'Upload de la vidéo en cours...',
+                        type: 'info',
+                        timeout: 0
+                    });
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        const response = await fetch('/files/upload-video', {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRFToken': document.querySelector('[name="csrf_token"]').value
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        notification.close();
+
+                        if (data.success) {
+                            // Insérer la vidéo dans l'éditeur
+                            editor.insertContent(`<video controls width="640" height="360">
+                                <source src="${data.location}" type="video/${file.name.split('.').pop()}">
+                                Votre navigateur ne supporte pas la balise vidéo.
+                            </video><p></p>`);
+
+                            editor.notificationManager.open({
+                                text: 'Vidéo insérée avec succès',
+                                type: 'success',
+                                timeout: 3000
+                            });
+                        } else {
+                            throw new Error(data.error || 'Erreur upload');
+                        }
+                    } catch (error) {
+                        notification.close();
+                        editor.notificationManager.open({
+                            text: 'Erreur upload vidéo: ' + error.message,
+                            type: 'error',
+                            timeout: 5000
+                        });
+                    }
+                };
+
+                input.click();
+            }
+        });
+
         editor.on('init', function() {
             console.log('TinyMCE initialisé avec succès');
 
