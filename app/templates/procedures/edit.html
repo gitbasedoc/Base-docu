@@ -431,55 +431,58 @@ document.addEventListener('DOMContentLoaded', function() {
         // Le formulaire se soumettra automatiquement (pas besoin de this.submit())
     });
 
-// ===========================
-// Import de document PDF/Word
-// ===========================
-document.getElementById('import-file').addEventListener('change', async function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    // ===========================
+    // Import de document PDF/Word
+    // ===========================
+    document.getElementById('import-file').addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const statusEl = document.getElementById('import-status');
-    statusEl.textContent = 'Import en cours...';
-    statusEl.style.color = '#ffa500';
+        const statusEl = document.getElementById('import-status');
+        statusEl.textContent = 'Import en cours...';
+        statusEl.style.color = '#ffa500';
 
-    const formData = new FormData();
-    formData.append('file', file);
+        const formData = new FormData();
+        formData.append('file', file);
 
-    try {
-        const response = await fetch('/files/import-document', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': document.querySelector('[name="csrf_token"]').value
+        try {
+            const response = await fetch('/files/import-document', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name="csrf_token"]').value
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Insérer le contenu dans TinyMCE
+                tinymce.get('content').setContent(data.content);
+                statusEl.textContent = `✓ ${data.filename} importé avec succès`;
+                statusEl.style.color = '#00ff88';
+
+                setTimeout(() => {
+                    statusEl.textContent = '';
+                }, 5000);
+            } else {
+                statusEl.textContent = `✗ Erreur: ${data.error}`;
+                statusEl.style.color = '#ff5252';
             }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // Insérer le contenu dans TinyMCE
-            tinymce.get('content').setContent(data.content);
-            statusEl.textContent = `✓ ${data.filename} importé avec succès`;
-            statusEl.style.color = '#00ff88';
-
-            setTimeout(() => {
-                statusEl.textContent = '';
-            }, 5000);
-        } else {
-            statusEl.textContent = `✗ Erreur: ${data.error}`;
+        } catch (error) {
+            statusEl.textContent = `✗ Erreur: ${error.message}`;
             statusEl.style.color = '#ff5252';
         }
-    } catch (error) {
-        statusEl.textContent = `✗ Erreur: ${error.message}`;
-        statusEl.style.color = '#ff5252';
-    }
 
-    // Reset le input
-    e.target.value = '';
+        // Reset le input
+        e.target.value = '';
+    });
+
+// Fin du DOMContentLoaded
 });
 
 // ===========================
-// Fonctions Tags
+// Fonctions globales (appelées depuis onclick)
 // ===========================
 function addTag() {
     const container = document.getElementById('tags-container');
@@ -589,9 +592,6 @@ async function reformulateContent() {
         btn.textContent = '[Améliorer la rédaction]';
     }
 }
-
-// Fin du DOMContentLoaded
-});
 </script>
 
 <style>
