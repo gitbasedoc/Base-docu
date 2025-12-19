@@ -276,6 +276,61 @@
     </div>
 </div>
 
+<script>
+// Corriger les liens sans href (texte brut d'URLs)
+document.addEventListener('DOMContentLoaded', function() {
+    const procedureContent = document.querySelector('.procedure-content');
+    if (!procedureContent) return;
+
+    // Trouver tous les <a> sans href ou avec href vide
+    const links = procedureContent.querySelectorAll('a:not([href]), a[href=""]');
+
+    links.forEach(link => {
+        const text = link.textContent.trim();
+        // Vérifier si le texte ressemble à une URL
+        if (text.match(/^(https?:\/\/|www\.)/i)) {
+            // Ajouter http:// si nécessaire
+            const url = text.startsWith('www.') ? 'http://' + text : text;
+            link.setAttribute('href', url);
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+        }
+    });
+
+    // Convertir aussi le texte brut qui ressemble à des URLs en liens
+    const walker = document.createTreeWalker(
+        procedureContent,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+    );
+
+    const textNodes = [];
+    let node;
+    while (node = walker.nextNode()) {
+        // Ne pas traiter les nœuds qui sont déjà dans des liens
+        if (node.parentElement.tagName !== 'A') {
+            textNodes.push(node);
+        }
+    }
+
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    textNodes.forEach(textNode => {
+        const text = textNode.textContent;
+        if (urlRegex.test(text)) {
+            const span = document.createElement('span');
+            span.innerHTML = text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+            textNode.parentNode.replaceChild(span, textNode);
+            // Remplacer le span par ses enfants
+            while (span.firstChild) {
+                span.parentNode.insertBefore(span.firstChild, span);
+            }
+            span.remove();
+        }
+    });
+});
+</script>
+
 <style>
 .procedure-content {
     background: var(--surface-color);
