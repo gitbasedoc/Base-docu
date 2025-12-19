@@ -10,16 +10,15 @@
 
 {% block content %}
 <div class="page-header">
-    <div>
-        <div class="breadcrumb">
-            <a href="{{ url_for('procedures.home') }}">[Home]</a>
-            <span class="breadcrumb-sep">/</span>
-            <a href="{{ url_for('procedures.list_procedures') }}">[Procédures]</a>
-            <span class="breadcrumb-sep">/</span>
-            <span>{% if procedure %}[Modifier]{% else %}[Nouvelle]{% endif %}</span>
-        </div>
-        <h2 class="page-title">{{ '// Modifier procédure' if procedure else '// Nouvelle procédure' }}</h2>
+    <div class="breadcrumb">
+        <a href="{{ url_for('procedures.list_procedures') }}">Procédures</a> &gt;
+        {% if procedure %}
+        <a href="{{ url_for('procedures.view_procedure', procedure_id=procedure.id) }}">{{ procedure.title }}</a> &gt; Modifier
+        {% else %}
+        Nouvelle
+        {% endif %}
     </div>
+    <h1>{% if procedure %}✏️ Modifier la procédure{% else %}➕ Nouvelle procédure{% endif %}</h1>
 </div>
 
 <form method="POST" enctype="multipart/form-data" class="procedure-form" id="procedureForm">
