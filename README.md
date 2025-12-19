@@ -34,7 +34,21 @@ Application web Flask de gestion de procédures IT avec :
 
 ## 🚀 Installation rapide
 
-### Prérequis
+### ⚡ Mode Standalone (Utilisateur unique - Windows)
+
+**Idéal pour une utilisation personnelle sur votre PC**
+
+1. **Installer Python 3.10+** depuis https://www.python.org/downloads/
+2. **Cloner le projet** : `git clone <url> Base-docu && cd Base-docu`
+3. **Installer** : `python -m venv venv && venv\Scripts\activate && pip install -r requirements.txt`
+4. **Initialiser** : `python standalone.py init-db`
+5. **Lancer** : `python standalone.py`
+
+L'application s'ouvre automatiquement sur http://localhost:5050
+
+📖 **Guide complet** : [INSTALLATION_STANDALONE.md](INSTALLATION_STANDALONE.md)
+
+### Prérequis (Serveur)
 
 - Python 3.12+
 - PostgreSQL 16+

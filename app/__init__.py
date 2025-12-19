@@ -59,6 +59,29 @@ def create_app(config_name=None):
     login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
     login_manager.login_message_category = 'info'
 
+    # En mode standalone, créer un request_loader pour auto-authentifier
+    if app.config.get('STANDALONE_MODE', False):
+        @login_manager.request_loader
+        def load_user_from_request(request):
+            from app.models import User
+            # Retourner toujours l'utilisateur standalone
+            user = User.query.filter_by(email='standalone@local').first()
+            if not user:
+                # Créer l'utilisateur standalone s'il n'existe pas
+                user = User(
+                    email='standalone@local',
+                    full_name='Utilisateur',
+                    is_admin=True,
+                    is_active=True
+                )
+                user.set_password('standalone')  # Mot de passe non utilisé
+                db.session.add(user)
+                try:
+                    db.session.commit()
+                except:
+                    db.session.rollback()
+            return user
+
     # Configuration logging
     configure_logging(app)
 

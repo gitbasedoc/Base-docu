@@ -139,10 +139,50 @@ class TestingConfig(Config):
     WTF_CSRF_ENABLED = False
 
 
+class StandaloneConfig(Config):
+    """Configuration pour version standalone (utilisateur unique)"""
+
+    DEBUG = False
+    TESTING = False
+
+    # Database SQLite locale
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    DATA_DIR = os.path.join(BASE_DIR, 'data')
+    SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.path.join(DATA_DIR, "kb_basedoc.db")}'
+
+    # Pas de pool pour SQLite
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+    }
+
+    # Upload dans le dossier data
+    UPLOAD_FOLDER = os.path.join(DATA_DIR, 'uploads')
+
+    # Logs dans le dossier data
+    LOG_FILE = os.path.join(DATA_DIR, 'logs', 'app.log')
+
+    # Session moins stricte (application locale)
+    SESSION_COOKIE_SECURE = False
+    WTF_CSRF_SSL_STRICT = False
+
+    # Secret key par défaut (peut être overridée par .env)
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-me-in-production')
+
+    # API Claude (optionnelle)
+    CLAUDE_API_KEY = os.environ.get('CLAUDE_API_KEY', None)
+
+    # Pas de rate limiting en standalone
+    RATELIMIT_ENABLED = False
+
+    # Pas d'authentification requise
+    STANDALONE_MODE = True
+
+
 # Map des configurations
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
     'testing': TestingConfig,
+    'standalone': StandaloneConfig,
     'default': ProductionConfig
 }

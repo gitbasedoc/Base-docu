@@ -23,6 +23,10 @@ def login():
     GET: Affiche le formulaire de connexion
     POST: Traite la soumission du formulaire
     """
+    # En mode standalone, rediriger directement vers home
+    if current_app.config.get('STANDALONE_MODE', False):
+        return redirect(url_for('procedures.home'))
+
     # Si déjà connecté, rediriger vers home
     if current_user.is_authenticated:
         return redirect(url_for('procedures.home'))
