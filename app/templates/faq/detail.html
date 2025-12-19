@@ -194,6 +194,18 @@ async function markHelpful() {
     font-size: 1.05rem;
 }
 
+.answer-content a {
+    color: var(--accent-cyan, #06b6d4);
+    text-decoration: underline;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.answer-content a:hover {
+    color: var(--accent-yellow, #fde047);
+    text-decoration: underline;
+}
+
 .answer-content h1, .answer-content h2, .answer-content h3 {
     color: var(--text-primary, #e0e0e0);
     margin-top: 25px;
