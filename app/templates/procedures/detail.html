@@ -286,15 +286,16 @@
 }
 
 .procedure-content a {
-    color: var(--accent-cyan, #06b6d4);
-    text-decoration: underline;
-    cursor: pointer;
+    color: var(--accent-cyan, #06b6d4) !important;
+    text-decoration: underline !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
     transition: color 0.2s ease;
 }
 
 .procedure-content a:hover {
-    color: var(--accent-yellow, #fde047);
-    text-decoration: underline;
+    color: var(--accent-yellow, #fde047) !important;
+    text-decoration: underline !important;
 }
 
 .procedure-description-block {
