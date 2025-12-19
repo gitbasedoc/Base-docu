@@ -2,6 +2,17 @@
 
 {% block title %}{{ script.title }}{% endblock %}
 
+{% block head %}
+<!-- Prism.js pour la coloration syntaxique -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-powershell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+{% endblock %}
+
 {% block content %}
 <div class="script-header">
     <div class="breadcrumb">
@@ -45,7 +56,7 @@
         </div>
     </div>
 
-    <pre><code id="codeBlock" class="language-{{ script.language|lower }}">{{ script.content }}</code></pre>
+    <pre class="line-numbers"><code id="codeBlock" class="language-{{ script.language|lower }}">{{ script.content }}</code></pre>
 </div>
 
 <!-- Section révision IA -->
@@ -85,13 +96,37 @@
 </div>
 
 <script>
-// Charger la révision précédente si elle existe
-{% if script.ai_suggestions %}
+// Initialiser Prism.js après le chargement du DOM
 document.addEventListener('DOMContentLoaded', function() {
+    // Activer la coloration syntaxique
+    if (typeof Prism !== 'undefined') {
+        Prism.highlightAll();
+    }
+
+    // Adapter le style selon le langage
+    const language = '{{ script.language|lower }}';
+    const codeHeader = document.querySelector('.code-header');
+    const pre = document.querySelector('pre');
+
+    if (language === 'bash') {
+        codeHeader.style.background = 'linear-gradient(180deg, #293137 0%, #1a1f23 100%)';
+        codeHeader.style.borderBottomColor = '#4EAA25';
+        pre.style.background = '#1a1f23';
+        const ps = codeHeader.querySelector('h2::before');
+        document.querySelector('.code-header h2').innerHTML = '<span style="color: #4EAA25; font-weight: bold;">$</span> Code Bash';
+    } else if (language === 'python') {
+        codeHeader.style.background = 'linear-gradient(180deg, #306998 0%, #1f4266 100%)';
+        codeHeader.style.borderBottomColor = '#FFD43B';
+        pre.style.background = '#1f4266';
+        document.querySelector('.code-header h2').innerHTML = '<span style="color: #FFD43B; font-weight: bold;">>>></span> Code Python';
+    }
+
+    // Charger la révision précédente si elle existe
+    {% if script.ai_suggestions %}
     const previousData = {{ script.ai_suggestions|safe }};
     displayReview(previousData, 'previousReview');
+    {% endif %}
 });
-{% endif %}
 
 function copyCode() {
     const code = document.getElementById('codeBlock').textContent;
@@ -326,7 +361,24 @@ function getScoreClass(score) {
     justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
-    border-bottom: 1px solid var(--border-color, #2a3f5f);
+    background: linear-gradient(180deg, #024a99 0%, #012456 100%);
+    border-bottom: 2px solid #024a99;
+}
+
+.code-header h2 {
+    color: #ffffff;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 1rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.code-header h2::before {
+    content: "PS>";
+    color: #00ff00;
+    font-weight: bold;
 }
 
 .code-actions {
@@ -337,20 +389,21 @@ function getScoreClass(score) {
 .btn-copy, .btn-review, .btn-edit {
     padding: 8px 16px;
     border-radius: 4px;
-    border: 1px solid var(--border-color, #2a3f5f);
-    background: var(--bg-secondary, #0f1729);
-    color: var(--text-primary, #e0e0e0);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.3);
+    color: #ffffff;
     cursor: pointer;
     font-size: 0.9rem;
     text-decoration: none;
     display: inline-block;
     transition: all 0.3s ease;
+    font-family: 'Consolas', 'Courier New', monospace;
 }
 
 .btn-copy:hover {
-    background: var(--accent-color, #00ff88);
-    color: var(--bg-primary, #1a1a2e);
-    border-color: var(--accent-color, #00ff88);
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #00ff00;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
 }
 
 .btn-review {
@@ -374,18 +427,146 @@ function getScoreClass(score) {
     border-color: var(--accent-color, #00ff88);
 }
 
+/* Style PowerShell 7 */
 pre {
     margin: 0;
     padding: 20px;
-    background: var(--bg-primary, #1a1a2e);
+    background: #012456 !important;  /* Bleu PowerShell classique */
     overflow-x: auto;
+    border-radius: 0 0 8px 8px;
+}
+
+pre.line-numbers {
+    padding-left: 3.8em;
+    position: relative;
+}
+
+pre.line-numbers > code {
+    position: relative;
+    white-space: pre;
+}
+
+.line-numbers .line-numbers-rows {
+    position: absolute;
+    pointer-events: none;
+    top: 20px;
+    font-size: 100%;
+    left: -3.8em;
+    width: 3em;
+    letter-spacing: -1px;
+    border-right: 1px solid #024a99;
+    user-select: none;
+}
+
+.line-numbers-rows > span {
+    display: block;
+    counter-increment: linenumber;
+}
+
+.line-numbers-rows > span:before {
+    content: counter(linenumber);
+    color: #5c8bd6;
+    display: block;
+    padding-right: 0.8em;
+    text-align: right;
 }
 
 code {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.9rem;
-    line-height: 1.6;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.95rem;
+    line-height: 1.5;
     color: #e0e0e0;
+}
+
+/* Coloration PowerShell personnalisée */
+.language-powershell .token.comment {
+    color: #6a9955 !important;
+}
+
+.language-powershell .token.string {
+    color: #d69d85 !important;
+}
+
+.language-powershell .token.keyword,
+.language-powershell .token.operator {
+    color: #c586c0 !important;
+}
+
+.language-powershell .token.function {
+    color: #dcdcaa !important;
+}
+
+.language-powershell .token.variable {
+    color: #9cdcfe !important;
+}
+
+.language-powershell .token.number {
+    color: #b5cea8 !important;
+}
+
+.language-powershell .token.cmdlet {
+    color: #4ec9b0 !important;
+    font-weight: 600;
+}
+
+.language-powershell .token.parameter {
+    color: #9cdcfe !important;
+}
+
+/* Coloration Bash */
+pre:has(.language-bash) {
+    background: #1a1f23 !important;
+}
+
+.language-bash .token.comment {
+    color: #6a9955 !important;
+}
+
+.language-bash .token.string {
+    color: #ce9178 !important;
+}
+
+.language-bash .token.keyword,
+.language-bash .token.builtin {
+    color: #569cd6 !important;
+}
+
+.language-bash .token.function {
+    color: #dcdcaa !important;
+}
+
+.language-bash .token.variable {
+    color: #9cdcfe !important;
+}
+
+/* Coloration Python */
+pre:has(.language-python) {
+    background: #1f4266 !important;
+}
+
+.language-python .token.comment {
+    color: #6a9955 !important;
+}
+
+.language-python .token.string {
+    color: #ce9178 !important;
+}
+
+.language-python .token.keyword {
+    color: #569cd6 !important;
+}
+
+.language-python .token.function,
+.language-python .token.class-name {
+    color: #4ec9b0 !important;
+}
+
+.language-python .token.decorator {
+    color: #c586c0 !important;
+}
+
+.language-python .token.number {
+    color: #b5cea8 !important;
 }
 
 .ai-review-section, .previous-review-section {
