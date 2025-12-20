@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 
 from app import db
-from app.models import FAQ, Category
+from app.models import FAQ
 
 faq_bp = Blueprint('faq', __name__)
 
@@ -20,15 +20,10 @@ def list_faqs():
     per_page = 20
 
     # Filtres
-    category_id = request.args.get('category', type=int)
     show_all = request.args.get('show_all', 'false') == 'true'
 
     # Query de base
     query = FAQ.query
-
-    # Appliquer les filtres
-    if category_id:
-        query = query.filter_by(category_id=category_id)
 
     # Par défaut, afficher seulement les FAQs publiées
     if not show_all or not (current_user.is_authenticated and current_user.is_admin):
@@ -41,14 +36,9 @@ def list_faqs():
         error_out=False
     )
 
-    # Récupérer toutes les catégories pour le filtre
-    categories = Category.query.order_by(Category.display_order).all()
-
     return render_template(
         'faq/list.html',
         faqs=faqs,
-        categories=categories,
-        current_category=category_id,
         show_all=show_all
     )
 
@@ -83,7 +73,6 @@ def new_faq():
     if request.method == 'POST':
         question = request.form.get('question', '').strip()
         answer = request.form.get('answer', '').strip()
-        category_id = request.form.get('category_id', type=int)
         is_published = request.form.get('is_published') == 'on'
 
         # Validation
@@ -95,15 +84,10 @@ def new_faq():
             flash('La réponse est requise', 'error')
             return redirect(url_for('faq.new_faq'))
 
-        if not category_id:
-            flash('La catégorie est requise', 'error')
-            return redirect(url_for('faq.new_faq'))
-
         # Créer la FAQ
         faq = FAQ(
             question=question,
             answer=answer,
-            category_id=category_id,
             created_by=current_user.id,
             is_published=is_published
         )
@@ -115,8 +99,7 @@ def new_faq():
         return redirect(url_for('faq.view_faq', faq_id=faq.id))
 
     # GET: Afficher le formulaire
-    categories = Category.query.order_by(Category.display_order).all()
-    return render_template('faq/edit.html', faq=None, categories=categories)
+    return render_template('faq/edit.html', faq=None)
 
 
 @faq_bp.route('/faq/<int:faq_id>/edit', methods=['GET', 'POST'])
@@ -135,18 +118,16 @@ def edit_faq(faq_id):
     if request.method == 'POST':
         question = request.form.get('question', '').strip()
         answer = request.form.get('answer', '').strip()
-        category_id = request.form.get('category_id', type=int)
         is_published = request.form.get('is_published') == 'on'
 
         # Validation
-        if not question or not answer or not category_id:
-            flash('Question, réponse et catégorie sont requis', 'error')
+        if not question or not answer:
+            flash('Question et réponse sont requis', 'error')
             return redirect(url_for('faq.edit_faq', faq_id=faq_id))
 
         # Mettre à jour la FAQ
         faq.question = question
         faq.answer = answer
-        faq.category_id = category_id
         faq.is_published = is_published
 
         db.session.commit()
@@ -155,8 +136,7 @@ def edit_faq(faq_id):
         return redirect(url_for('faq.view_faq', faq_id=faq.id))
 
     # GET: Afficher le formulaire
-    categories = Category.query.order_by(Category.display_order).all()
-    return render_template('faq/edit.html', faq=faq, categories=categories)
+    return render_template('faq/edit.html', faq=faq)
 
 
 @faq_bp.route('/faq/<int:faq_id>/delete', methods=['POST'])

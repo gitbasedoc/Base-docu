@@ -16,15 +16,6 @@
     {% endif %}
 
     <div class="filters">
-        <select id="category-filter" class="filter-select" onchange="filterFAQs()">
-            <option value="">Toutes les catégories</option>
-            {% for category in categories %}
-            <option value="{{ category.id }}" {% if category.id == current_category %}selected{% endif %}>
-                {{ category.name }}
-            </option>
-            {% endfor %}
-        </select>
-
         {% if current_user.is_authenticated and current_user.is_admin %}
         <label class="checkbox-filter">
             <input type="checkbox" id="show-all" {% if show_all %}checked{% endif %} onchange="filterFAQs()">
@@ -39,9 +30,6 @@
     {% for faq in faqs.items %}
     <div class="faq-card">
         <div class="faq-header">
-            <div class="faq-category" style="border-color: {{ faq.category.color_code if faq.category.color_code else '#00ff88' }}">
-                {{ faq.category.short_name }}
-            </div>
             {% if not faq.is_published %}
             <span class="badge-draft">Brouillon</span>
             {% endif %}
@@ -77,13 +65,13 @@
 {% if faqs.pages > 1 %}
 <div class="pagination">
     {% if faqs.has_prev %}
-    <a href="?page={{ faqs.prev_num }}&category={{ current_category or '' }}&show_all={{ show_all }}" class="page-btn">← Précédent</a>
+    <a href="?page={{ faqs.prev_num }}&show_all={{ show_all }}" class="page-btn">← Précédent</a>
     {% endif %}
 
     <span class="page-info">Page {{ faqs.page }} sur {{ faqs.pages }}</span>
 
     {% if faqs.has_next %}
-    <a href="?page={{ faqs.next_num }}&category={{ current_category or '' }}&show_all={{ show_all }}" class="page-btn">Suivant →</a>
+    <a href="?page={{ faqs.next_num }}&show_all={{ show_all }}" class="page-btn">Suivant →</a>
     {% endif %}
 </div>
 {% endif %}
@@ -101,11 +89,9 @@
 
 <script>
 function filterFAQs() {
-    const category = document.getElementById('category-filter').value;
     const showAll = document.getElementById('show-all') ? document.getElementById('show-all').checked : false;
 
     const params = new URLSearchParams();
-    if (category) params.append('category', category);
     if (showAll) params.append('show_all', 'true');
 
     window.location.href = '{{ url_for("faq.list_faqs") }}?' + params.toString();

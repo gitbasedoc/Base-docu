@@ -111,6 +111,149 @@
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ai_features.js') }}"></script>
+
+    <!-- Search autocomplete -->
+    {% if current_user.is_authenticated %}
+    <script>
+    // Auto-complétion de recherche
+    (function() {
+        const searchInput = document.getElementById('global-search');
+        const suggestionsDiv = document.getElementById('search-suggestions');
+
+        if (!searchInput || !suggestionsDiv) return;
+
+        let debounceTimeout;
+        let currentRequest = null;
+
+        // Fonction pour récupérer les suggestions
+        async function fetchSuggestions(query) {
+            if (query.length < 2) {
+                hideSuggestions();
+                return;
+            }
+
+            // Annuler la requête précédente si elle existe
+            if (currentRequest) {
+                currentRequest.abort();
+            }
+
+            // Créer un AbortController pour cette requête
+            const controller = new AbortController();
+            currentRequest = controller;
+
+            try {
+                const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`, {
+                    signal: controller.signal
+                });
+
+                if (!response.ok) {
+                    hideSuggestions();
+                    return;
+                }
+
+                const suggestions = await response.json();
+                displaySuggestions(suggestions);
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Erreur de recherche:', error);
+                }
+                hideSuggestions();
+            } finally {
+                currentRequest = null;
+            }
+        }
+
+        // Fonction pour afficher les suggestions
+        function displaySuggestions(suggestions) {
+            if (!suggestions || suggestions.length === 0) {
+                hideSuggestions();
+                return;
+            }
+
+            suggestionsDiv.innerHTML = suggestions.map(item => `
+                <a href="${item.url}" class="suggestion-item">
+                    <span class="suggestion-icon">${item.icon}</span>
+                    <div class="suggestion-content">
+                        <div class="suggestion-title">${escapeHtml(item.title)}</div>
+                        <div class="suggestion-type">${item.type}</div>
+                    </div>
+                </a>
+            `).join('');
+
+            suggestionsDiv.classList.add('active');
+        }
+
+        // Fonction pour cacher les suggestions
+        function hideSuggestions() {
+            suggestionsDiv.innerHTML = '';
+            suggestionsDiv.classList.remove('active');
+        }
+
+        // Fonction pour échapper le HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Event listener sur l'input
+        searchInput.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+
+            // Debounce pour éviter trop de requêtes
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                fetchSuggestions(query);
+            }, 300);
+        });
+
+        // Cacher les suggestions quand on clique ailleurs
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                hideSuggestions();
+            }
+        });
+
+        // Navigation au clavier (flèches haut/bas, Enter)
+        searchInput.addEventListener('keydown', function(e) {
+            const items = suggestionsDiv.querySelectorAll('.suggestion-item');
+            if (items.length === 0) return;
+
+            const currentActive = suggestionsDiv.querySelector('.suggestion-item.active');
+            let currentIndex = Array.from(items).indexOf(currentActive);
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (currentActive) currentActive.classList.remove('active');
+                currentIndex = (currentIndex + 1) % items.length;
+                items[currentIndex].classList.add('active');
+                items[currentIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (currentActive) currentActive.classList.remove('active');
+                currentIndex = currentIndex <= 0 ? items.length - 1 : currentIndex - 1;
+                items[currentIndex].classList.add('active');
+                items[currentIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter' && currentActive) {
+                e.preventDefault();
+                currentActive.click();
+            } else if (e.key === 'Escape') {
+                hideSuggestions();
+            }
+        });
+
+        // Focus sur l'input avec Ctrl+K ou Cmd+K
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+            }
+        });
+    })();
+    </script>
+    {% endif %}
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

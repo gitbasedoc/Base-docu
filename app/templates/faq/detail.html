@@ -15,9 +15,6 @@
         </div>
 
         <div class="faq-badges">
-            <span class="category-badge" style="border-color: {{ faq.category.color_code if faq.category.color_code else '#00ff88' }}">
-                {{ faq.category.name }}
-            </span>
             {% if not faq.is_published %}
             <span class="status-badge draft">Brouillon</span>
             {% endif %}

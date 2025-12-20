@@ -2,12 +2,11 @@
 Routes pour la recherche
 """
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required
 from sqlalchemy import or_, func, text
 
 from app import db
-from app.models import Procedure, Tag
 
 search_bp = Blueprint('search', __name__)
 
@@ -78,54 +77,111 @@ def search_suggestions():
     API pour l'auto-complétion de recherche
 
     Query params:
-        q: Requête de recherche (min 3 caractères)
+        q: Requête de recherche (min 2 caractères)
 
     Returns:
-        JSON: Liste de suggestions
+        JSON: Liste de suggestions depuis Procedures, Scripts, FAQ, Software
     """
     query = request.args.get('q', '').strip()
 
-    if not query or len(query) < 3:
+    if not query or len(query) < 2:
         return jsonify([])
 
+    # Charger les modèles appropriés selon le mode
+    if current_app.config.get('STANDALONE_MODE', False):
+        from app.models_standalone import Procedure, Script, FAQ, Software
+    else:
+        from app.models import Procedure, Script, FAQ, Software
+
+    search_pattern = f'%{query}%'
+    suggestions = []
+
+    # Recherche dans les Procédures
     try:
-        # Essayer avec PostgreSQL FTS d'abord (plus rapide et pertinent)
-        search_query = ' & '.join([word for word in query.split() if len(word) >= 2])
-
-        results = db.session.query(
-            Procedure,
-            func.ts_rank(
-                Procedure.search_vector,
-                func.to_tsquery('french', search_query)
-            ).label('rank')
-        ).filter(
-            Procedure.is_archived == False,
-            Procedure.search_vector.op('@@')(func.to_tsquery('french', search_query))
-        ).order_by(
-            text('rank DESC')
-        ).limit(10).all()
-
-        procedures = [item[0] for item in results]
-
-    except:
-        # Fallback sur recherche ILIKE
-        search_pattern = f'%{query}%'
         procedures = Procedure.query.filter(
-            Procedure.is_archived == False,
-            Procedure.title.ilike(search_pattern)
-        ).order_by(Procedure.updated_at.desc()).limit(10).all()
+            Procedure.is_published == True,
+            or_(
+                Procedure.title.ilike(search_pattern),
+                Procedure.description.ilike(search_pattern)
+            )
+        ).order_by(Procedure.updated_at.desc()).limit(5).all()
 
-    suggestions = [
-        {
-            'id': p.id,
-            'title': p.title,
-            'category': p.category.name,
-            'url': f'/procedures/{p.id}'
-        }
-        for p in procedures
-    ]
+        for p in procedures:
+            suggestions.append({
+                'id': p.id,
+                'title': p.title,
+                'type': 'Procédure',
+                'icon': '📄',
+                'url': f'/procedures/{p.id}'
+            })
+    except:
+        pass
 
-    return jsonify(suggestions)
+    # Recherche dans les Scripts
+    try:
+        scripts = Script.query.filter(
+            Script.status == 'published',
+            or_(
+                Script.title.ilike(search_pattern),
+                Script.description.ilike(search_pattern)
+            )
+        ).order_by(Script.updated_at.desc()).limit(5).all()
+
+        for s in scripts:
+            suggestions.append({
+                'id': s.id,
+                'title': s.title,
+                'type': f'Script {s.language.upper()}',
+                'icon': '💻',
+                'url': f'/scripts/{s.id}'
+            })
+    except:
+        pass
+
+    # Recherche dans les FAQ
+    try:
+        faqs = FAQ.query.filter(
+            FAQ.is_published == True,
+            or_(
+                FAQ.question.ilike(search_pattern),
+                FAQ.answer.ilike(search_pattern)
+            )
+        ).order_by(FAQ.updated_at.desc()).limit(5).all()
+
+        for f in faqs:
+            suggestions.append({
+                'id': f.id,
+                'title': f.question,
+                'type': 'FAQ',
+                'icon': '❓',
+                'url': f'/faq/{f.id}'
+            })
+    except:
+        pass
+
+    # Recherche dans les Logiciels
+    try:
+        software = Software.query.filter(
+            Software.is_active == True,
+            or_(
+                Software.name.ilike(search_pattern),
+                Software.description.ilike(search_pattern)
+            )
+        ).order_by(Software.updated_at.desc()).limit(5).all()
+
+        for sw in software:
+            suggestions.append({
+                'id': sw.id,
+                'title': sw.name,
+                'type': 'Logiciel',
+                'icon': '⚙️',
+                'url': f'/software/{sw.id}'
+            })
+    except:
+        pass
+
+    # Limiter à 10 résultats maximum
+    return jsonify(suggestions[:10])
 
 
 @search_bp.route('/api/search/tags')
