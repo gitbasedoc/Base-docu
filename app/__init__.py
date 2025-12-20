@@ -64,12 +64,10 @@ def create_app(config_name=None):
 
     # Charger les modèles appropriés selon le mode
     if app.config.get('STANDALONE_MODE', False):
-        # Mode standalone : utiliser les modèles simplifiés
-        import app.models_standalone
-
+        # Mode standalone : configuration auto-login
         @login_manager.request_loader
         def load_user_from_request(request):
-            from app.models_standalone import User
+            from app.models import User
             # Retourner toujours l'utilisateur standalone
             user = User.query.filter_by(email='standalone@local').first()
             if not user:
@@ -87,9 +85,6 @@ def create_app(config_name=None):
                 except:
                     db.session.rollback()
             return user
-    else:
-        # Mode serveur : utiliser les modèles complets
-        import app.models
 
     # Configuration logging
     configure_logging(app)

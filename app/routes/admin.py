@@ -7,8 +7,14 @@ from flask_login import login_required, current_user
 from functools import wraps
 
 from app import db
-from app.models import User, Category, Setting, ActionLog, Procedure, Script, FAQ, Software, Favorite, Suggestion
-# from app.utils.audit_logger import log_action
+from app.models import User, Setting, Procedure, Script, FAQ, Software
+
+# Imports optionnels pour mode serveur
+try:
+    from app.models import Category, ActionLog, Favorite, Suggestion
+except ImportError:
+    Category = ActionLog = Favorite = Suggestion = None
+
 from sqlalchemy import func
 from datetime import datetime, timedelta
 

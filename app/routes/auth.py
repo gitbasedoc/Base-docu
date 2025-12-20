@@ -9,7 +9,6 @@ import re
 
 from app import db
 from app.models import User, Setting
-# from app.utils.audit_logger import log_action
 
 auth_bp = Blueprint('auth', __name__)
 

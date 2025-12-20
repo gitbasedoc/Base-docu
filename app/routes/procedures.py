@@ -7,11 +7,33 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 
 from app import db
-from app.models import Procedure, Category, Tag, ActionLog, Comment, Favorite
+from app.models import Procedure, Tag
+
+# Imports optionnels pour mode serveur
+try:
+    from app.models import Category, ActionLog, Comment, Favorite
+except ImportError:
+    Category = ActionLog = Comment = Favorite = None
+
 from app.services.file_service import FileService
 from app.services.export_service import ExportService
 
 procedures_bp = Blueprint('procedures', __name__)
+
+
+def count_procedures(query=None, **filters):
+    """Helper pour compter les procédures en tenant compte du mode standalone"""
+    if query is None:
+        query = Procedure.query
+
+    # Filtrer is_archived seulement si le champ existe
+    if hasattr(Procedure, 'is_archived') and 'is_archived' not in filters:
+        filters['is_archived'] = False
+
+    if filters:
+        query = query.filter_by(**filters)
+
+    return query.count()
 
 
 @procedures_bp.route('/home')
@@ -21,33 +43,32 @@ def home():
     Page d'accueil
     """
     # Récupérer les procédures récemment modifiées
-    recent_procedures = Procedure.query.filter_by(is_archived=False)\
-        .order_by(Procedure.updated_at.desc())\
-        .limit(10)\
-        .all()
+    query = Procedure.query
+    # Filtre is_archived seulement si le champ existe (mode serveur)
+    if hasattr(Procedure, 'is_archived'):
+        query = query.filter_by(is_archived=False)
+    recent_procedures = query.order_by(Procedure.updated_at.desc()).limit(10).all()
 
     # Récupérer les favoris de l'utilisateur (avec gestion d'erreur si table n'existe pas)
     favorite_procedures = []
     favorite_count = 0
     try:
-        favorite_procedures = db.session.query(Procedure)\
-            .join(Favorite, Favorite.procedure_id == Procedure.id)\
-            .filter(Favorite.user_id == current_user.id)\
-            .filter(Procedure.is_archived == False)\
-            .order_by(Favorite.created_at.desc())\
-            .limit(5)\
-            .all()
-        favorite_count = Favorite.query.filter_by(user_id=current_user.id).count()
+        if Favorite is not None:
+            query = db.session.query(Procedure).join(Favorite, Favorite.procedure_id == Procedure.id).filter(Favorite.user_id == current_user.id)
+            if hasattr(Procedure, 'is_archived'):
+                query = query.filter(Procedure.is_archived == False)
+            favorite_procedures = query.order_by(Favorite.created_at.desc()).limit(5).all()
+            favorite_count = Favorite.query.filter_by(user_id=current_user.id).count()
     except Exception as e:
         # Table favorites n'existe pas encore, ignorer silencieusement
         pass
 
     # Statistiques
     stats = {
-        'total_procedures': Procedure.query.filter_by(is_archived=False).count(),
-        'total_categories': Category.query.count(),
+        'total_procedures': count_procedures(),
+        'total_categories': Category.query.count() if Category is not None else 0,
         'total_tags': Tag.query.count(),
-        'my_procedures': Procedure.query.filter_by(created_by=current_user.id, is_archived=False).count(),
+        'my_procedures': count_procedures(created_by=current_user.id),
         'favorite_count': favorite_count
     }
 
@@ -80,7 +101,9 @@ def list_procedures():
         if tag:
             query = query.filter(Procedure.tags.contains(tag))
 
-    query = query.filter_by(is_archived=archived)
+    # Filtrer is_archived seulement si le champ existe
+    if hasattr(Procedure, 'is_archived'):
+        query = query.filter_by(is_archived=archived)
 
     # Pagination
     procedures = query.order_by(Procedure.updated_at.desc()).paginate(
@@ -298,21 +321,26 @@ def archive_procedure(procedure_id):
     """
     procedure = Procedure.query.get_or_404(procedure_id)
 
-    procedure.is_archived = True
+    # Archiver seulement si le champ existe (mode serveur)
+    if hasattr(procedure, 'is_archived'):
+        procedure.is_archived = True
 
-    # Audit log
-    ActionLog.log_action(
-        action_type='archive',
-        entity_type='procedure',
-        entity_id=procedure.id,
-        entity_name=procedure.title,
-        user_id=current_user.id,
-        request_obj=request
-    )
+        # Audit log
+        if ActionLog is not None:
+            ActionLog.log_action(
+                action_type='archive',
+                entity_type='procedure',
+                entity_id=procedure.id,
+                entity_name=procedure.title,
+                user_id=current_user.id,
+                request_obj=request
+            )
 
-    db.session.commit()
+        db.session.commit()
+        flash('Procédure archivée', 'success')
+    else:
+        flash('Fonction non disponible en mode standalone', 'warning')
 
-    flash('Procédure archivée', 'success')
     return redirect(url_for('procedures.list_procedures'))
 
 
@@ -324,21 +352,26 @@ def restore_procedure(procedure_id):
     """
     procedure = Procedure.query.get_or_404(procedure_id)
 
-    procedure.is_archived = False
+    # Restaurer seulement si le champ existe (mode serveur)
+    if hasattr(procedure, 'is_archived'):
+        procedure.is_archived = False
 
-    # Audit log
-    ActionLog.log_action(
-        action_type='restore',
-        entity_type='procedure',
-        entity_id=procedure.id,
-        entity_name=procedure.title,
-        user_id=current_user.id,
-        request_obj=request
-    )
+        # Audit log
+        if ActionLog is not None:
+            ActionLog.log_action(
+                action_type='restore',
+                entity_type='procedure',
+                entity_id=procedure.id,
+                entity_name=procedure.title,
+                user_id=current_user.id,
+                request_obj=request
+            )
 
-    db.session.commit()
+        db.session.commit()
+        flash('Procédure restaurée', 'success')
+    else:
+        flash('Fonction non disponible en mode standalone', 'warning')
 
-    flash('Procédure restaurée', 'success')
     return redirect(url_for('procedures.view_procedure', procedure_id=procedure.id))
 
 

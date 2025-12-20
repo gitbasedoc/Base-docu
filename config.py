@@ -10,14 +10,10 @@ class Config:
     """Configuration de base"""
 
     # Flask
-    SECRET_KEY = os.environ.get('SECRET_KEY')
-    if not SECRET_KEY:
-        raise ValueError("SECRET_KEY doit être définie dans les variables d'environnement")
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-me')
 
     # Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
-    if not SQLALCHEMY_DATABASE_URI:
-        raise ValueError("DATABASE_URL doit être définie dans les variables d'environnement")
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///temp.db')
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False

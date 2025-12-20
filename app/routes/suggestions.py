@@ -6,8 +6,12 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
 from app import db
-from app.models import Suggestion
-# from app.utils.audit_logger import log_action
+
+# Import optionnel pour mode serveur
+try:
+    from app.models import Suggestion
+except ImportError:
+    Suggestion = None
 
 suggestions_bp = Blueprint('suggestions', __name__, url_prefix='/suggestions')
 
