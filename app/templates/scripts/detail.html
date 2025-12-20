@@ -49,7 +49,6 @@
         <h2>💻 Code</h2>
         <div class="code-actions">
             <button onclick="copyCode()" class="btn-copy" title="Copier le code">📋 Copier</button>
-            <button onclick="reviewCode()" class="btn-review" id="reviewBtn">🤖 Réviser avec l'IA</button>
             {% if script.author_id == current_user.id or current_user.is_admin %}
             <a href="{{ url_for('scripts.edit_script', script_id=script.id) }}" class="btn-edit">✏️ Modifier</a>
             {% endif %}
@@ -58,19 +57,6 @@
 
     <pre class="line-numbers"><code id="codeBlock" class="language-{{ script.language|lower }}">{{ script.content }}</code></pre>
 </div>
-
-<!-- Section révision IA -->
-<div id="aiReviewSection" class="ai-review-section" style="display: none;">
-    <h2>🤖 Révision IA du Code</h2>
-    <div id="aiReviewContent"></div>
-</div>
-
-{% if script.ai_suggestions %}
-<div class="previous-review-section">
-    <h2>📊 Dernière Révision IA</h2>
-    <div id="previousReview"></div>
-</div>
-{% endif %}
 
 {% if current_user.is_admin and not script.is_verified %}
 <div class="admin-section">
@@ -120,12 +106,6 @@ document.addEventListener('DOMContentLoaded', function() {
         pre.style.background = '#1f4266';
         document.querySelector('.code-header h2').innerHTML = '<span style="color: #FFD43B; font-weight: bold;">>>></span> Code Python';
     }
-
-    // Charger la révision précédente si elle existe
-    {% if script.ai_suggestions %}
-    const previousData = {{ script.ai_suggestions|safe }};
-    displayReview(previousData, 'previousReview');
-    {% endif %}
 });
 
 function copyCode() {
@@ -133,141 +113,6 @@ function copyCode() {
     navigator.clipboard.writeText(code).then(() => {
         alert('Code copié dans le presse-papiers !');
     });
-}
-
-async function reviewCode() {
-    const btn = document.getElementById('reviewBtn');
-    const section = document.getElementById('aiReviewSection');
-    const content = document.getElementById('aiReviewContent');
-
-    // Désactiver le bouton
-    btn.disabled = true;
-    btn.textContent = '⏳ Révision en cours...';
-
-    // Afficher la section
-    section.style.display = 'block';
-    content.innerHTML = '<p class="loading">🔄 L\'IA analyse votre code...</p>';
-
-    try {
-        const response = await fetch('{{ url_for("scripts.review_script", script_id=script.id) }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            displayReview(data.suggestions, 'aiReviewContent');
-        } else {
-            content.innerHTML = `<p class="error">❌ Erreur : ${data.error}</p>`;
-        }
-    } catch (error) {
-        content.innerHTML = `<p class="error">❌ Erreur de connexion : ${error.message}</p>`;
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '🤖 Réviser avec l\'IA';
-    }
-}
-
-function displayReview(data, containerId) {
-    const container = document.getElementById(containerId);
-
-    let html = `
-        <div class="review-summary">
-            <div class="score-circle ${getScoreClass(data.overall_score)}">
-                <span class="score">${data.overall_score}</span>
-                <span class="score-label">/100</span>
-            </div>
-            <div class="summary-text">
-                <h3>Résumé</h3>
-                <p>${data.summary}</p>
-            </div>
-        </div>
-    `;
-
-    // Sécurité
-    if (data.security && data.security.length > 0) {
-        html += '<div class="review-category security">';
-        html += '<h3>🔒 Sécurité</h3>';
-        data.security.forEach(item => {
-            html += `
-                <div class="review-item ${item.severity}">
-                    <div class="item-header">
-                        <span class="severity-badge ${item.severity}">${item.severity}</span>
-                        <strong>${item.issue}</strong>
-                    </div>
-                    <p>${item.suggestion}</p>
-                </div>
-            `;
-        });
-        html += '</div>';
-    }
-
-    // Performance
-    if (data.performance && data.performance.length > 0) {
-        html += '<div class="review-category performance">';
-        html += '<h3>⚡ Performance</h3>';
-        data.performance.forEach(item => {
-            html += `
-                <div class="review-item ${item.impact}">
-                    <div class="item-header">
-                        <span class="impact-badge ${item.impact}">${item.impact}</span>
-                        <strong>${item.issue}</strong>
-                    </div>
-                    <p>${item.suggestion}</p>
-                </div>
-            `;
-        });
-        html += '</div>';
-    }
-
-    // Bonnes pratiques
-    if (data.best_practices && data.best_practices.length > 0) {
-        html += '<div class="review-category best-practices">';
-        html += '<h3>✅ Bonnes Pratiques</h3>';
-        data.best_practices.forEach(item => {
-            html += `
-                <div class="review-item ${item.priority}">
-                    <div class="item-header">
-                        <span class="priority-badge ${item.priority}">${item.priority}</span>
-                        <strong>${item.practice}</strong>
-                    </div>
-                    <p>${item.suggestion}</p>
-                </div>
-            `;
-        });
-        html += '</div>';
-    }
-
-    // Bugs
-    if (data.bugs && data.bugs.length > 0) {
-        html += '<div class="review-category bugs">';
-        html += '<h3>🐛 Bugs Potentiels</h3>';
-        data.bugs.forEach(item => {
-            html += `
-                <div class="review-item ${item.severity}">
-                    <div class="item-header">
-                        <span class="severity-badge ${item.severity}">${item.severity}</span>
-                        <strong>${item.bug}</strong>
-                    </div>
-                    <p>${item.fix}</p>
-                </div>
-            `;
-        });
-        html += '</div>';
-    }
-
-    container.innerHTML = html;
-}
-
-function getScoreClass(score) {
-    if (score >= 80) return 'excellent';
-    if (score >= 60) return 'good';
-    if (score >= 40) return 'average';
-    return 'poor';
 }
 </script>
 
