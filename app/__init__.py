@@ -44,7 +44,10 @@ def create_app(config_name=None):
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'production')
 
-    app.config.from_object('config.Config')
+    # Charger la configuration appropriée
+    from config import config as config_map
+    config_class = config_map.get(config_name, config_map['default'])
+    app.config.from_object(config_class)
 
     # Initialiser les extensions
     db.init_app(app)
@@ -59,11 +62,14 @@ def create_app(config_name=None):
     login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
     login_manager.login_message_category = 'info'
 
-    # En mode standalone, créer un request_loader pour auto-authentifier
+    # Charger les modèles appropriés selon le mode
     if app.config.get('STANDALONE_MODE', False):
+        # Mode standalone : utiliser les modèles simplifiés
+        import app.models_standalone
+
         @login_manager.request_loader
         def load_user_from_request(request):
-            from app.models import User
+            from app.models_standalone import User
             # Retourner toujours l'utilisateur standalone
             user = User.query.filter_by(email='standalone@local').first()
             if not user:
@@ -74,13 +80,16 @@ def create_app(config_name=None):
                     is_admin=True,
                     is_active=True
                 )
-                user.set_password('standalone')  # Mot de passe non utilisé
+                user.set_password('standalone')
                 db.session.add(user)
                 try:
                     db.session.commit()
                 except:
                     db.session.rollback()
             return user
+    else:
+        # Mode serveur : utiliser les modèles complets
+        import app.models
 
     # Configuration logging
     configure_logging(app)

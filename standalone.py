@@ -38,23 +38,17 @@ def ensure_directories():
 
 def init_database(force=False):
     """Initialiser la base de données"""
-    app = create_app('standalone')
+    import subprocess
 
-    with app.app_context():
-        db_path = Path(app.config['DATA_DIR']) / 'kb_basedoc.db'
+    if force:
+        print("⚠️  Mode force activé - la base sera réinitialisée")
 
-        if db_path.exists() and not force:
-            print(f"✓ Base de données existe déjà : {db_path}")
-            return
+    print("Lancement du script d'initialisation...")
+    result = subprocess.run([sys.executable, 'init_standalone_db.py'], capture_output=False)
 
-        if force and db_path.exists():
-            print(f"⚠️ Suppression de l'ancienne base de données...")
-            db_path.unlink()
-
-        print("Création de la base de données...")
-        db.create_all()
-
-        print("✓ Base de données initialisée")
+    if result.returncode != 0:
+        print("❌ Erreur lors de l'initialisation")
+        sys.exit(1)
 
 
 def open_browser(port=5050):
