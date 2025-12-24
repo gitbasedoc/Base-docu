@@ -112,8 +112,8 @@ def list_procedures():
         error_out=False
     )
 
-    # Récupérer toutes les catégories pour le filtre
-    categories = Category.query.order_by(Category.display_order).all()
+    # Récupérer toutes les catégories pour le filtre (seulement en mode serveur)
+    categories = Category.query.order_by(Category.display_order).all() if Category is not None else []
 
     return render_template(
         'procedures/list.html',

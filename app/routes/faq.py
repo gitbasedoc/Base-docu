@@ -54,9 +54,13 @@ def view_faq(faq_id):
     if not faq.is_published and not (current_user.is_authenticated and current_user.is_admin):
         abort(404)
 
-    # Incrémenter le compteur de vues
-    faq.increment_view()
-    db.session.commit()
+    # Incrémenter le compteur de vues (si la méthode existe)
+    try:
+        faq.increment_view()
+        db.session.commit()
+    except AttributeError:
+        # Mode standalone : la méthode n'existe pas
+        pass
 
     return render_template(
         'faq/detail.html',

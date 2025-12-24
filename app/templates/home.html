@@ -73,7 +73,7 @@
             <div class="favorite-description">{{ procedure.description[:100] }}{% if procedure.description|length > 100 %}...{% endif %}</div>
             {% endif %}
             <div class="favorite-meta">
-                <span class="meta-item">📁 {{ procedure.category.name }}</span>
+                {% if procedure.category %}<span class="meta-item">📁 {{ procedure.category.name }}</span>{% endif %}
                 <span class="meta-item">👁️ {{ procedure.views_count }} vues</span>
                 <span class="meta-item">👍 {{ procedure.useful_count }} utile</span>
             </div>

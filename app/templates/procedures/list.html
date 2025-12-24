@@ -46,9 +46,11 @@
                 <span class="procedure-id">[PROC-{{ "%04d"|format(procedure.id) }}]</span>
                 {{ procedure.title }}
             </a>
+            {% if procedure.category %}
             <div class="procedure-category" style="border-left-color: {{ procedure.category.color_code }}">
                 {{ procedure.category.name }}
             </div>
+            {% endif %}
         </div>
 
         {% if procedure.description %}

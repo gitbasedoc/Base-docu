@@ -26,12 +26,14 @@
 <!-- Métadonnées -->
 <div class="procedure-metadata">
     <div class="metadata-grid">
+        {% if procedure.category %}
         <div class="metadata-item">
             <span class="metadata-label">Catégorie</span>
             <span class="metadata-value" style="border-left: 3px solid {{ procedure.category.color_code }}; padding-left: 0.5rem;">
                 {{ procedure.category.name }}
             </span>
         </div>
+        {% endif %}
 
         <div class="metadata-item">
             <span class="metadata-label">Créé par</span>
